@@ -105,50 +105,50 @@ export const settingsModule = new Elysia({ prefix: "/settings" })
 
   // List DSUs for a year
   .get(
-    "/years/:yearId/dsus",
+    "/years/:id/dsus",
     async ({ params }) => {
       return db.query.dsus.findMany({
-        where: eq(dsus.yearId, params.yearId),
+        where: eq(dsus.yearId, params.id),
         orderBy: (d, { asc }) => asc(d.name),
       });
     },
-    { params: t.Object({ yearId: t.String() }) }
+    { params: t.Object({ id: t.String() }) }
   )
 
   // Create DSU
   .post(
-    "/years/:yearId/dsus",
+    "/years/:id/dsus",
     async ({ params, body }) => {
       const [dsu] = await db
         .insert(dsus)
-        .values({ yearId: params.yearId, name: body.name })
+        .values({ yearId: params.id, name: body.name })
         .returning();
       return dsu;
     },
     {
-      params: t.Object({ yearId: t.String() }),
+      params: t.Object({ id: t.String() }),
       body: t.Object({ name: t.String() }),
     }
   )
 
   // Delete DSU
   .delete(
-    "/years/:yearId/dsus/:dsuId",
+    "/years/:id/dsus/:dsuId",
     async ({ params }) => {
       await db.delete(dsus).where(
-        and(eq(dsus.id, params.dsuId), eq(dsus.yearId, params.yearId))
+        and(eq(dsus.id, params.dsuId), eq(dsus.yearId, params.id))
       );
       return { ok: true };
     },
-    { params: t.Object({ yearId: t.String(), dsuId: t.String() }) }
+    { params: t.Object({ id: t.String(), dsuId: t.String() }) }
   )
 
   // List reviewer-DSU assignments for a year
   .get(
-    "/years/:yearId/reviewer-assignments",
+    "/years/:id/reviewer-assignments",
     async ({ params }) => {
       const yearDsus = await db.query.dsus.findMany({
-        where: eq(dsus.yearId, params.yearId),
+        where: eq(dsus.yearId, params.id),
       });
       const dsuIds = yearDsus.map((d) => d.id);
       if (dsuIds.length === 0) return [];
@@ -175,15 +175,15 @@ export const settingsModule = new Elysia({ prefix: "/settings" })
       }
       return result;
     },
-    { params: t.Object({ yearId: t.String() }) }
+    { params: t.Object({ id: t.String() }) }
   )
 
   // Create reviewer-DSU assignment
   .post(
-    "/years/:yearId/reviewer-assignments",
+    "/years/:id/reviewer-assignments",
     async ({ params, body, error }) => {
       const dsu = await db.query.dsus.findFirst({
-        where: and(eq(dsus.id, body.dsuId), eq(dsus.yearId, params.yearId)),
+        where: and(eq(dsus.id, body.dsuId), eq(dsus.yearId, params.id)),
       });
       if (!dsu) return error(404, "DSU not found for this year");
 
@@ -200,17 +200,17 @@ export const settingsModule = new Elysia({ prefix: "/settings" })
       return assignment;
     },
     {
-      params: t.Object({ yearId: t.String() }),
+      params: t.Object({ id: t.String() }),
       body: t.Object({ userId: t.String(), dsuId: t.String() }),
     }
   )
 
   // Delete reviewer-DSU assignment
   .delete(
-    "/years/:yearId/reviewer-assignments/:id",
+    "/years/:id/reviewer-assignments/:assignmentId",
     async ({ params }) => {
-      await db.delete(reviewerDsus).where(eq(reviewerDsus.id, params.id));
+      await db.delete(reviewerDsus).where(eq(reviewerDsus.id, params.assignmentId));
       return { ok: true };
     },
-    { params: t.Object({ yearId: t.String(), id: t.String() }) }
+    { params: t.Object({ id: t.String(), assignmentId: t.String() }) }
   );

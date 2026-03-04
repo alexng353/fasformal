@@ -174,10 +174,7 @@ function SettingsPage() {
 
   const updateYearMutation = useMutation({
     mutationFn: async (data: typeof form) => {
-      // Eden Treaty merges param names from overlapping routes (:id and :yearId),
-      // producing a union type. We pass both and assert to access .patch.
-      const yearClient = api.settings.years({ id: data.id, yearId: data.id }) as any;
-      const { data: result, error } = await yearClient.patch({
+      const { data: result, error } = await api.settings.years({ id: data.id }).patch({
         eventName: data.eventName,
         ticketPrice: data.ticketPrice,
         conditionalPricingEnabled: data.conditionalPricingEnabled,
@@ -204,8 +201,7 @@ function SettingsPage() {
 
   const activateMutation = useMutation({
     mutationFn: async (id: string) => {
-      const yearClient = api.settings.years({ id, yearId: id }) as any;
-      const { error } = await yearClient.activate.post();
+      const { error } = await api.settings.years({ id }).activate.post();
       if (error) throw error;
     },
     onSuccess: () => {
@@ -772,9 +768,7 @@ function DsuManager({ yearId }: { yearId: string }) {
   const [newDsuName, setNewDsuName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // Eden Treaty merges param names from overlapping routes (:id and :yearId),
-  // producing a union type. We pass both and assert to access .dsus.
-  const yearClient = api.settings.years({ id: yearId, yearId }) as any;
+  const yearClient = api.settings.years({ id: yearId });
 
   const dsusQuery = useQuery({
     queryKey: ["settings", "years", yearId, "dsus"],
