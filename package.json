@@ -1,0 +1,13 @@
+{
+  "name": "fasformal",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:api": "bun run --filter '@fasformal/api' dev",
+    "dev:web": "bun run --filter '@fasformal/web' dev",
+    "db:generate": "bun run --filter '@fasformal/api' db:generate",
+    "db:migrate": "bun run --filter '@fasformal/api' db:migrate",
+    "db:seed": "bun run --filter '@fasformal/api' db:seed"
+  }
+}
