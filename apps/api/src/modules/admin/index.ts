@@ -32,7 +32,15 @@ export const adminModule = new Elysia({ prefix: "/admin" })
         where: conditions.length > 0 ? and(...conditions) : undefined,
         orderBy: (a, { desc }) => desc(a.createdAt),
       });
-      return allAttendees;
+
+      // Resolve DSU names
+      const allDsus = await db.query.dsus.findMany();
+      const dsuMap = new Map(allDsus.map((d) => [d.id, d.name]));
+
+      return allAttendees.map((a) => ({
+        ...a,
+        dsuName: a.dsuId ? dsuMap.get(a.dsuId) ?? null : null,
+      }));
     },
     {
       query: t.Object({

@@ -116,7 +116,7 @@ function SubmissionsPage() {
                     Email
                   </th>
                   <th className="py-3 px-4 font-medium text-gray-500">
-                    DSU Type
+                    DSU
                   </th>
                   <th className="py-3 px-4 font-medium text-gray-500">
                     Status
@@ -144,11 +144,7 @@ function SubmissionsPage() {
                     </td>
                     <td className="py-3 px-4 text-gray-600">{s.email}</td>
                     <td className="py-3 px-4">
-                      {s.dsuType ? (
-                        <span className="capitalize">{s.dsuType}</span>
-                      ) : (
-                        "—"
-                      )}
+                      {s.dsuName ?? s.specifiedDsu ?? (s.dsuType ? <span className="capitalize">{s.dsuType}</span> : "—")}
                     </td>
                     <td className="py-3 px-4">
                       <span
@@ -242,7 +238,7 @@ function SubmissionDetail({
           {submission.specifiedDsu || "—"}
         </DetailRow>
         <DetailRow label="Date of Birth">
-          {submission.dateOfBirth || "—"}
+          {submission.dateOfBirth ? String(submission.dateOfBirth) : "—"}
         </DetailRow>
         <DetailRow label="Student Status">
           <span className="capitalize">

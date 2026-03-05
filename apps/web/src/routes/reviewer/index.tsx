@@ -192,7 +192,7 @@ function SubmissionDetail({
         </div>
         <div>
           <span className="font-medium text-gray-500">DOB:</span>{" "}
-          {submission.dateOfBirth || "—"}
+          {submission.dateOfBirth ? String(submission.dateOfBirth) : "—"}
         </div>
         <div>
           <span className="font-medium text-gray-500">Dietary:</span>{" "}
