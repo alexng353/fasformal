@@ -930,10 +930,12 @@ function Step10({
   const price = calculatePrice(year, attendee);
   const confirmationNumber = attendee.confirmationNumber ?? "N/A";
 
-  // Substitute confirmation number into the payment description template
+  // Substitute placeholders into the payment description template
+  const fullName = [attendee.firstName, attendee.lastName].filter(Boolean).join(" ") || "N/A";
   const paymentDescription = year.paymentDescriptionTemplate
     .replace(/\{confirmationNumber\}/gi, confirmationNumber)
-    .replace(/\{confirmation_number\}/gi, confirmationNumber);
+    .replace(/\{confirmation_number\}/gi, confirmationNumber)
+    .replace(/\{name\}/gi, fullName);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

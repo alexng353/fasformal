@@ -601,8 +601,9 @@ function PaymentTab({ form, setForm }: TabProps) {
         />
         <p className="mt-1 text-xs text-gray-400">
           Template shown to attendees as the e-transfer description/message.
-          Use <code className="bg-gray-100 px-1 rounded">{"{confirmation_number}"}</code> to
-          insert the attendee's confirmation number (e.g. FF-2026-A3X7).
+          Placeholders: <code className="bg-gray-100 px-1 rounded">{"{confirmation_number}"}</code> (e.g.
+          FF-2026-A3X7), <code className="bg-gray-100 px-1 rounded">{"{name}"}</code> (attendee's
+          full name).
         </p>
       </div>
       <div>
