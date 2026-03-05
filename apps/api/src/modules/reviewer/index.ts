@@ -3,6 +3,7 @@ import { db } from "../../db";
 import { attendees, reviewerDsus, dsus, years } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireStaff } from "../auth/guards";
+import { sendEmail } from "../../lib/email";
 
 const tAttendeeStatus = t.Union([
   t.Literal("pending"),
@@ -12,6 +13,29 @@ const tAttendeeStatus = t.Union([
   t.Literal("waitlisted"),
   t.Literal("admitted"),
 ]);
+
+function getStatusEmailContent(status: string, firstName: string | null) {
+  const name = firstName || "Applicant";
+  switch (status) {
+    case "admitted":
+      return {
+        subject: "You've been accepted!",
+        body: `<p>Hi ${name},</p><p>Congratulations! We're excited to let you know that you've been accepted to FAS Formal. We look forward to seeing you there!</p><p>Best regards,<br/>FAS Formal Team</p>`,
+      };
+    case "waitlisted":
+      return {
+        subject: "Waitlist Update",
+        body: `<p>Hi ${name},</p><p>Thank you for your application to FAS Formal. You've been placed on our waitlist. We'll notify you if a spot becomes available.</p><p>Best regards,<br/>FAS Formal Team</p>`,
+      };
+    case "banned":
+      return {
+        subject: "Application Update",
+        body: `<p>Hi ${name},</p><p>Thank you for your interest in FAS Formal. After reviewing your application, we're unable to offer you a spot at this time.</p><p>Best regards,<br/>FAS Formal Team</p>`,
+      };
+    default:
+      return { subject: "", body: "" };
+  }
+}
 
 export const reviewerModule = new Elysia({ prefix: "/reviewer" })
   .use(requireStaff)
@@ -126,6 +150,14 @@ export const reviewerModule = new Elysia({ prefix: "/reviewer" })
         .set(update)
         .where(eq(attendees.id, params.id))
         .returning();
+
+      // Send email notification for status changes
+      if (body.status && updated?.email && ["admitted", "waitlisted", "banned"].includes(body.status)) {
+        const emailContent = getStatusEmailContent(body.status, updated.firstName);
+        sendEmail(updated.email, emailContent.subject, emailContent.body).catch((err) =>
+          console.error("[REVIEWER] Failed to send status email:", err)
+        );
+      }
 
       return updated;
     },
