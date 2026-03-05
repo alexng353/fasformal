@@ -88,7 +88,7 @@ export const formModule = new Elysia({ prefix: "/form" })
       switch (stepNum) {
         case 3: // DSU selection
           if (body.dsuType) update.dsuType = body.dsuType;
-          if (body.dsuId) update.dsuId = body.dsuId;
+          if (body.dsuId !== undefined) update.dsuId = body.dsuId;
           if (body.specifiedDsu !== undefined)
             update.specifiedDsu = body.specifiedDsu;
           break;

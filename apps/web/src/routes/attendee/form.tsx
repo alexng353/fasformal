@@ -229,8 +229,16 @@ function Step3({
   dsus: Dsu[];
   onSuccess: () => void;
 }) {
+  const OTHER = "__other__";
   const [dsuType, setDsuType] = useState<string>(attendee.dsuType ?? "dsu");
-  const [dsuId, setDsuId] = useState<string>(attendee.dsuId ?? "");
+
+  // If the attendee has a specifiedDsu but no dsuId, they previously chose "Other"
+  const initialDsuId = attendee.dsuId
+    ? attendee.dsuId
+    : attendee.specifiedDsu
+      ? OTHER
+      : "";
+  const [dsuId, setDsuId] = useState<string>(initialDsuId);
   const [specifiedDsu, setSpecifiedDsu] = useState<string>(
     attendee.specifiedDsu ?? "",
   );
@@ -238,15 +246,17 @@ function Step3({
 
   const mutation = useStepMutation(3);
 
+  const isOther = dsuId === OTHER;
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    if (dsuType === "dsu" && !dsuId) {
+    if (!dsuId) {
       setError("Please select a DSU.");
       return;
     }
-    if ((dsuType === "alumni" || dsuType === "partner") && !specifiedDsu.trim()) {
+    if (isOther && !specifiedDsu.trim()) {
       setError("Please specify your DSU / organization.");
       return;
     }
@@ -254,12 +264,19 @@ function Step3({
     mutation.mutate(
       {
         dsuType,
-        dsuId: dsuType === "dsu" ? dsuId : null,
-        specifiedDsu: dsuType !== "dsu" ? specifiedDsu.trim() : null,
+        dsuId: isOther ? null : dsuId,
+        specifiedDsu: isOther ? specifiedDsu.trim() : null,
       },
       { onSuccess },
     );
   }
+
+  const dsuLabel =
+    dsuType === "alumni"
+      ? "Which DSU were you a part of?"
+      : dsuType === "partner"
+        ? "Which DSU is your partner a member of?"
+        : "Select Your DSU";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -296,7 +313,11 @@ function Step3({
               name="dsuType"
               value={opt.value}
               checked={dsuType === opt.value}
-              onChange={() => setDsuType(opt.value)}
+              onChange={() => {
+                setDsuType(opt.value);
+                setDsuId("");
+                setSpecifiedDsu("");
+              }}
               className="accent-blue-600"
             />
             <span className="text-sm font-medium text-gray-800">
@@ -306,41 +327,35 @@ function Step3({
         ))}
       </fieldset>
 
-      {dsuType === "dsu" && (
-        <div>
-          <Label htmlFor="dsuId">Select Your DSU</Label>
-          <select
-            id="dsuId"
-            value={dsuId}
-            onChange={(e) => setDsuId(e.target.value)}
-            className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
-          >
-            <option value="">-- Select a DSU --</option>
-            {dsus.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      <div>
+        <Label htmlFor="dsuId">{dsuLabel}</Label>
+        <select
+          id="dsuId"
+          value={dsuId}
+          onChange={(e) => {
+            setDsuId(e.target.value);
+            if (e.target.value !== OTHER) setSpecifiedDsu("");
+          }}
+          className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+        >
+          <option value="">-- Select a DSU --</option>
+          {dsus.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
+          <option value={OTHER}>Other</option>
+        </select>
+      </div>
 
-      {(dsuType === "alumni" || dsuType === "partner") && (
+      {isOther && (
         <div>
-          <Label htmlFor="specifiedDsu">
-            {dsuType === "alumni"
-              ? "Which DSU were you a part of?"
-              : "Your organization or affiliation"}
-          </Label>
+          <Label htmlFor="specifiedDsu">Please specify</Label>
           <Input
             id="specifiedDsu"
             value={specifiedDsu}
             onChange={(e) => setSpecifiedDsu(e.target.value)}
-            placeholder={
-              dsuType === "alumni"
-                ? "e.g. Computing Science Student Society"
-                : "e.g. Partner of a CSSS member"
-            }
+            placeholder="e.g. Computing Science Student Society"
           />
         </div>
       )}
