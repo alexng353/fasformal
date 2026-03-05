@@ -492,7 +492,7 @@ function GeneralTab({ form, setForm, isAdding }: TabProps) {
 
 function RegistrationTab({ form, setForm }: TabProps) {
   const deadlineValue = form.submissionDeadline
-    ? toLocalDatetimeString(form.submissionDeadline)
+    ? toLocalDateString(form.submissionDeadline)
     : "";
 
   const canonicalUrl = form.formSlug
@@ -504,20 +504,20 @@ function RegistrationTab({ form, setForm }: TabProps) {
       <div>
         <label className={labelClass}>Submission Deadline</label>
         <input
-          type="datetime-local"
+          type="date"
           value={deadlineValue}
           onChange={(e) =>
             setForm((f) => ({
               ...f,
               submissionDeadline: e.target.value
-                ? new Date(e.target.value).toISOString()
+                ? dateToEndOfDayISO(e.target.value)
                 : null,
             }))
           }
           className={inputClass}
         />
         <p className="mt-1 text-xs text-gray-400">
-          After this date, new registrations will be blocked.
+          Registrations will be blocked after 11:59 PM on this date.
           Leave blank for no deadline.
         </p>
       </div>
@@ -714,15 +714,21 @@ function PaymentTab({ form, setForm }: TabProps) {
   );
 }
 
-function toLocalDatetimeString(iso: string): string {
+function toLocalDateString(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function dateToEndOfDayISO(dateStr: string): string {
+  const parts = dateStr.split("-").map(Number);
+  const d = new Date(parts[0]!, parts[1]! - 1, parts[2]!, 23, 59, 59);
+  return d.toISOString();
 }
 
 function RefundTab({ form, setForm }: TabProps) {
   const dateValue = form.refundDeadline
-    ? toLocalDatetimeString(form.refundDeadline)
+    ? toLocalDateString(form.refundDeadline)
     : "";
 
   return (
@@ -730,20 +736,20 @@ function RefundTab({ form, setForm }: TabProps) {
       <div>
         <label className={labelClass}>Refund Deadline</label>
         <input
-          type="datetime-local"
+          type="date"
           value={dateValue}
           onChange={(e) =>
             setForm((f) => ({
               ...f,
               refundDeadline: e.target.value
-                ? new Date(e.target.value).toISOString()
+                ? dateToEndOfDayISO(e.target.value)
                 : null,
             }))
           }
           className={inputClass}
         />
         <p className="mt-1 text-xs text-gray-400">
-          After this date, refunds will no longer be available.
+          Refunds will no longer be available after 11:59 PM on this date.
           Leave blank for no refund deadline.
         </p>
       </div>
