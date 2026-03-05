@@ -596,11 +596,13 @@ function PaymentTab({ form, setForm }: TabProps) {
               paymentDescriptionTemplate: e.target.value,
             }))
           }
-          placeholder="e.g. FAS Formal 2026 - {{name}}"
+          placeholder="e.g. FAS Formal 2026 - {confirmation_number}"
           className={inputClass}
         />
         <p className="mt-1 text-xs text-gray-400">
-          Template for the e-transfer description. May include placeholders.
+          Template shown to attendees as the e-transfer description/message.
+          Use <code className="bg-gray-100 px-1 rounded">{"{confirmation_number}"}</code> to
+          insert the attendee's confirmation number (e.g. FF-2026-A3X7).
         </p>
       </div>
       <div>
