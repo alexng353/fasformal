@@ -3,7 +3,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "cd apps/api && bunx drizzle-kit migrate && cd /app && bun run apps/api/src/index.ts"
+startCommand = "sh -c 'cd apps/api && bunx drizzle-kit migrate && cd /app && bun run apps/api/src/index.ts'"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
