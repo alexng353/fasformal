@@ -74,7 +74,7 @@ export const formModule = new Elysia({ prefix: "/form" })
     "/step/:stepNumber",
     async ({ params, body, attendee, error }) => {
       const stepNum = parseInt(params.stepNumber);
-      if (isNaN(stepNum) || stepNum < 1 || stepNum > 11) {
+      if (isNaN(stepNum) || stepNum < 1 || stepNum > 10) {
         return error(400, "Invalid step number");
       }
 
@@ -132,10 +132,7 @@ export const formModule = new Elysia({ prefix: "/form" })
             update.refundDateAnswer = body.refundDateAnswer;
           break;
 
-        case 10: // Payment info (read-only step, just advance)
-          break;
-
-        case 11: { // Payment agreement
+        case 10: { // Payment info + agreement
           update.paymentAgreed = body.paymentAgreed ?? false;
           if (body.paymentAgreed) {
             update.paymentAgreedAt = new Date();
@@ -164,15 +161,15 @@ export const formModule = new Elysia({ prefix: "/form" })
       }
 
       // Advance step if currently on this step
-      if (stepNum === attendee.currentStep && stepNum < 11) {
+      if (stepNum === attendee.currentStep && stepNum < 10) {
         let nextStep = stepNum + 1;
         // Skip step 5 if not a partner
         if (nextStep === 5 && attendee.dsuType !== "partner") {
           nextStep = 6;
         }
         update.currentStep = nextStep;
-      } else if (stepNum === 11) {
-        update.currentStep = 11;
+      } else if (stepNum === 10) {
+        update.currentStep = 10;
       }
 
       const [updated] = await db

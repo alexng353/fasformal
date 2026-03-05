@@ -39,11 +39,10 @@ const STEP_LABELS: Record<number, string> = {
   7: "SFSS Waiver",
   8: "Refund Awareness",
   9: "Refund Date",
-  10: "Payment Info",
-  11: "Payment Agreement",
+  10: "Payment",
 };
 
-const VISIBLE_STEPS = [3, 4, 5, 6, 7, 8, 9, 10, 11];
+const VISIBLE_STEPS = [3, 4, 5, 6, 7, 8, 9, 10];
 
 function Stepper({
   currentStep,
@@ -955,9 +954,17 @@ function Step10({
     .replace(/\{confirmation_number\}/gi, confirmationNumber)
     .replace(/\{name\}/gi, fullName);
 
+  const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState("");
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    mutation.mutate({}, { onSuccess });
+    setError("");
+    if (!agreed) {
+      setError("You must agree to the payment terms to complete registration.");
+      return;
+    }
+    mutation.mutate({ paymentAgreed: true }, { onSuccess });
   }
 
   return (
@@ -966,6 +973,7 @@ function Step10({
         Payment Information
       </h2>
 
+      {error && <ErrorBanner message={error} />}
       {mutation.isError && <ErrorBanner message={mutation.error.message} />}
 
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
@@ -1008,7 +1016,7 @@ function Step10({
                 onClick={() => {
                   navigator.clipboard.writeText(paymentDescription);
                   setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
+                  setTimeout(() => setCopied(false), 150);
                 }}
                 className={cn(
                   "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition shrink-0",
@@ -1040,55 +1048,6 @@ function Step10({
             </p>
           </div>
         </div>
-      </div>
-
-      <SubmitButton loading={mutation.isPending} />
-    </form>
-  );
-}
-
-// ---- Step 11 --------------------------------------------------------------
-
-function Step11({
-  attendee,
-  year,
-  onSuccess,
-}: {
-  attendee: Attendee;
-  year: NonNullable<YearConfig>;
-  onSuccess: () => void;
-}) {
-  const [agreed, setAgreed] = useState(false);
-  const [error, setError] = useState("");
-
-  const mutation = useStepMutation(11);
-
-  const price = calculatePrice(year, attendee);
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    if (!agreed) {
-      setError("You must agree to the payment terms to complete registration.");
-      return;
-    }
-    mutation.mutate({ paymentAgreed: true }, { onSuccess });
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">
-        Payment Agreement
-      </h2>
-
-      {error && <ErrorBanner message={error} />}
-      {mutation.isError && <ErrorBanner message={mutation.error.message} />}
-
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <p className="text-sm text-gray-700">
-          By checking the box below, you agree to send the e-transfer payment as
-          described in the previous step.
-        </p>
       </div>
 
       <label className="flex items-start gap-3 cursor-pointer">
@@ -1260,9 +1219,9 @@ function FormPage() {
     if (next === 5 && attendee.dsuType !== "partner") {
       next = 6;
     }
-    if (next > 11) {
+    if (next > 10) {
       // Reload to show completion
-      navigate({ to: "/attendee/form", search: { step: 11 } });
+      navigate({ to: "/attendee/form", search: { step: 10 } });
       return;
     }
     navigate({ to: "/attendee/form", search: { step: next } });
@@ -1299,19 +1258,11 @@ function FormPage() {
           <Step10
             attendee={attendee}
             year={year}
-            onSuccess={() => goToNextStep(10)}
-          />
-        );
-      case 11:
-        return (
-          <Step11
-            attendee={attendee}
-            year={year}
             onSuccess={() => {
-              // After step 11, the query will re-fetch and show completion screen
+              // After completion, the query will re-fetch and show completion screen
               navigate({
                 to: "/attendee/form",
-                search: { step: 11 },
+                search: { step: 10 },
               });
             }}
           />
