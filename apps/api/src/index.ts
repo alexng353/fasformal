@@ -50,9 +50,14 @@ const app = new Elysia()
 if (hasWebDist) {
   app.get("/*", ({ params }) => {
     const reqPath = (params as Record<string, string>)["*"] ?? "";
-    const filePath = path.join(webDistDir, reqPath);
+    const filePath = path.resolve(webDistDir, reqPath);
 
-    if (reqPath && existsSync(filePath) && !filePath.endsWith("/")) {
+    if (
+      reqPath &&
+      filePath.startsWith(webDistDir) &&
+      existsSync(filePath) &&
+      !filePath.endsWith("/")
+    ) {
       const file = Bun.file(filePath);
       return new Response(file, {
         headers: { "Content-Type": file.type },

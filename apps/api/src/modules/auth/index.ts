@@ -14,12 +14,19 @@ import { generateSessionToken } from "../../lib/session";
 import { generateOtp } from "../../lib/otp";
 import { generateConfirmationNumber } from "../../lib/confirmation";
 import { sendEmail } from "../../lib/email";
+import { checkRateLimit } from "../../lib/rate-limit";
 
 export const authModule = new Elysia({ prefix: "/auth" })
   // Admin login
   .post(
     "/admin/login",
-    async ({ body, cookie, status }) => {
+    async ({ body, cookie, status, request }) => {
+      const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+      const rl = checkRateLimit(`admin-login:${ip}`, 5, 15 * 60 * 1000);
+      if (!rl.allowed) {
+        return status(429, "Too many login attempts. Please try again later.");
+      }
+
       const user = await db.query.users.findFirst({
         where: eq(users.email, body.email),
       });
@@ -40,6 +47,7 @@ export const authModule = new Elysia({ prefix: "/auth" })
       cookie.admin_session!.set({
         value: token,
         httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
         expires: expiresAt,
@@ -101,25 +109,28 @@ export const authModule = new Elysia({ prefix: "/auth" })
         .returning();
       if (!invite) return status(410, "Invalid, expired, or fully used invite link");
 
-      const existing = await db.query.users.findFirst({
-        where: eq(users.email, body.email),
-      });
-      if (existing) {
+      const passwordHash = await Bun.password.hash(body.password);
+      try {
+        await db.insert(users).values({
+          email: body.email,
+          passwordHash,
+          role: invite.role,
+          name: body.name,
+        });
+      } catch (err: unknown) {
         // Roll back the use count since we didn't actually create a user
         await db
           .update(inviteLinks)
           .set({ currentUses: sql`${inviteLinks.currentUses} - 1` })
           .where(eq(inviteLinks.id, invite.id));
-        return status(409, "Email already registered");
+        if (
+          err instanceof Error &&
+          err.message.includes("unique") // unique constraint on users.email
+        ) {
+          return status(409, "Email already registered");
+        }
+        throw err;
       }
-
-      const passwordHash = await Bun.password.hash(body.password);
-      await db.insert(users).values({
-        email: body.email,
-        passwordHash,
-        role: invite.role,
-        name: body.name,
-      });
 
       return { ok: true };
     },
@@ -191,7 +202,13 @@ export const authModule = new Elysia({ prefix: "/auth" })
   // Attendee: verify OTP code
   .post(
     "/attendee/verify-code",
-    async ({ body, cookie, status }) => {
+    async ({ body, cookie, status, request }) => {
+      const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+      const rl = checkRateLimit(`verify-code:${ip}`, 10, 15 * 60 * 1000);
+      if (!rl.allowed) {
+        return status(429, "Too many verification attempts. Please try again later.");
+      }
+
       const activeYear = await db.query.years.findFirst({
         where: eq(years.isActive, true),
       });
@@ -267,6 +284,7 @@ export const authModule = new Elysia({ prefix: "/auth" })
       cookie.attendee_session!.set({
         value: token,
         httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
         expires: expiresAt,

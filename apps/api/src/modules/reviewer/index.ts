@@ -4,6 +4,7 @@ import { attendees, reviewerDsus, dsus, years } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireStaff } from "../auth/guards";
 import { sendEmail } from "../../lib/email";
+import { escapeHtml } from "../../lib/html";
 
 const tAttendeeStatus = t.Union([
   t.Literal("pending"),
@@ -15,7 +16,7 @@ const tAttendeeStatus = t.Union([
 ]);
 
 function getStatusEmailContent(status: string, firstName: string | null) {
-  const name = firstName || "Applicant";
+  const name = escapeHtml(firstName || "Applicant");
   switch (status) {
     case "admitted":
       return {

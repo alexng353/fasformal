@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { requireAdmin } from "../auth/guards";
 import { randomBytes } from "crypto";
 import { sendEmail } from "../../lib/email";
+import { escapeHtml } from "../../lib/html";
 
 const tAttendeeStatus = t.Union([
   t.Literal("pending"),
@@ -18,7 +19,7 @@ const tAttendeeStatus = t.Union([
 const tUserRole = t.Union([t.Literal("admin"), t.Literal("reviewer")]);
 
 function getStatusEmailContent(status: string, firstName: string | null) {
-  const name = firstName || "Applicant";
+  const name = escapeHtml(firstName || "Applicant");
   switch (status) {
     case "admitted":
       return {

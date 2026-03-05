@@ -92,6 +92,19 @@ export const formModule = new Elysia({ prefix: "/form" })
         return status(400, "Invalid step number");
       }
 
+      // Prevent edits after form is completed
+      if (attendee.formCompleted) {
+        return status(400, "Form has already been submitted");
+      }
+
+      // Enforce submission deadline
+      const year = await db.query.years.findFirst({
+        where: eq(years.id, attendee.yearId),
+      });
+      if (year?.submissionDeadline && new Date() > year.submissionDeadline) {
+        return status(400, "Registration is closed for this event");
+      }
+
       // Can't skip ahead
       if (stepNum > attendee.currentStep) {
         return status(400, "Cannot skip ahead");
@@ -163,10 +176,7 @@ export const formModule = new Elysia({ prefix: "/form" })
             update.paymentAgreedAt = new Date();
             update.formCompleted = true;
 
-            // Lock price
-            const year = await db.query.years.findFirst({
-              where: eq(years.id, attendee.yearId),
-            });
+            // Lock price (reuse year fetched for deadline check above)
             if (year) {
               if (year.conditionalPricingEnabled) {
                 if (attendee.dsuType === "alumni") {
