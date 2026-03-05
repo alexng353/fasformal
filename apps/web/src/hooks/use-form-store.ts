@@ -1,26 +1,33 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+type StepDraft = Record<string, unknown>;
+
 interface FormStore {
-  // Local form draft data (not yet submitted to server)
-  draft: Record<string, unknown>;
-  setDraft: (step: number, data: Record<string, unknown>) => void;
-  getDraft: (step: number) => Record<string, unknown>;
-  clearDraft: () => void;
+  drafts: Record<string, StepDraft>;
+  setDraft: (step: number, data: StepDraft) => void;
+  getDraft: (step: number) => StepDraft;
+  clearStep: (step: number) => void;
+  clearAll: () => void;
 }
 
 export const useFormStore = create<FormStore>()(
   persist(
     (set, get) => ({
-      draft: {},
+      drafts: {},
       setDraft: (step, data) =>
         set((state) => ({
-          draft: { ...state.draft, [`step_${step}`]: data },
+          drafts: { ...state.drafts, [step]: data },
         })),
       getDraft: (step) =>
-        (get().draft[`step_${step}`] as Record<string, unknown>) || {},
-      clearDraft: () => set({ draft: {} }),
+        (get().drafts[step] as StepDraft) ?? {},
+      clearStep: (step) =>
+        set((state) => {
+          const { [step]: _, ...rest } = state.drafts;
+          return { drafts: rest };
+        }),
+      clearAll: () => set({ drafts: {} }),
     }),
-    { name: "fasformal-form-draft" }
-  )
+    { name: "fasformal-form-draft" },
+  ),
 );

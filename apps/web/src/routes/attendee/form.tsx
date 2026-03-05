@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api";
 import { cn } from "@/lib/utils";
+import { useFormStore } from "@/hooks/use-form-store";
 
 // ---------------------------------------------------------------------------
 // Route definition
@@ -216,6 +217,27 @@ function useStepMutation(stepNumber: number) {
 }
 
 // ---------------------------------------------------------------------------
+// Draft-aware state: reads from localStorage draft first, falls back to server
+// ---------------------------------------------------------------------------
+
+function useDraftField<T>(step: number, field: string, serverValue: T): [T, (v: T) => void] {
+  const { getDraft, setDraft } = useFormStore();
+  const draft = getDraft(step);
+  const initial = field in draft ? (draft[field] as T) : serverValue;
+  const [value, setValueRaw] = useState<T>(initial);
+
+  const setValue = useCallback(
+    (v: T) => {
+      setValueRaw(v);
+      setDraft(step, { ...useFormStore.getState().getDraft(step), [field]: v });
+    },
+    [step, field, setDraft],
+  );
+
+  return [value, setValue];
+}
+
+// ---------------------------------------------------------------------------
 // Step Components
 // ---------------------------------------------------------------------------
 
@@ -229,20 +251,18 @@ function Step3({
   onSuccess: () => void;
 }) {
   const OTHER = "__other__";
-  const [dsuType, setDsuType] = useState<string>(attendee.dsuType ?? "dsu");
-
-  // If the attendee has a specifiedDsu but no dsuId, they previously chose "Other"
   const initialDsuId = attendee.dsuId
     ? attendee.dsuId
     : attendee.specifiedDsu
       ? OTHER
       : "";
-  const [dsuId, setDsuId] = useState<string>(initialDsuId);
-  const [specifiedDsu, setSpecifiedDsu] = useState<string>(
-    attendee.specifiedDsu ?? "",
-  );
+
+  const [dsuType, setDsuType] = useDraftField<string>(3, "dsuType", attendee.dsuType ?? "dsu");
+  const [dsuId, setDsuId] = useDraftField<string>(3, "dsuId", initialDsuId);
+  const [specifiedDsu, setSpecifiedDsu] = useDraftField<string>(3, "specifiedDsu", attendee.specifiedDsu ?? "");
   const [error, setError] = useState("");
 
+  const { clearStep } = useFormStore();
   const mutation = useStepMutation(3);
 
   const isOther = dsuId === OTHER;
@@ -266,7 +286,7 @@ function Step3({
         dsuId: isOther ? null : dsuId,
         specifiedDsu: isOther ? specifiedDsu.trim() : null,
       },
-      { onSuccess },
+      { onSuccess: () => { clearStep(3); onSuccess(); } },
     );
   }
 
@@ -373,23 +393,16 @@ function Step4({
   attendee: Attendee;
   onSuccess: () => void;
 }) {
-  const [firstName, setFirstName] = useState(attendee.firstName ?? "");
-  const [lastName, setLastName] = useState(attendee.lastName ?? "");
-  const [dateOfBirth, setDateOfBirth] = useState(attendee.dateOfBirth ?? "");
-  const [dietaryRestrictions, setDietaryRestrictions] = useState(
-    attendee.dietaryRestrictions ?? "",
-  );
-  const [studentStatus, setStudentStatus] = useState(
-    attendee.studentStatus ?? "full_time",
-  );
-  const [emergencyContactName, setEmergencyContactName] = useState(
-    attendee.emergencyContactName ?? "",
-  );
-  const [emergencyContactPhone, setEmergencyContactPhone] = useState(
-    attendee.emergencyContactPhone ?? "",
-  );
+  const [firstName, setFirstName] = useDraftField(4, "firstName", attendee.firstName ?? "");
+  const [lastName, setLastName] = useDraftField(4, "lastName", attendee.lastName ?? "");
+  const [dateOfBirth, setDateOfBirth] = useDraftField(4, "dateOfBirth", attendee.dateOfBirth ?? "");
+  const [dietaryRestrictions, setDietaryRestrictions] = useDraftField(4, "dietaryRestrictions", attendee.dietaryRestrictions ?? "");
+  const [studentStatus, setStudentStatus] = useDraftField(4, "studentStatus", attendee.studentStatus ?? "full_time");
+  const [emergencyContactName, setEmergencyContactName] = useDraftField(4, "emergencyContactName", attendee.emergencyContactName ?? "");
+  const [emergencyContactPhone, setEmergencyContactPhone] = useDraftField(4, "emergencyContactPhone", attendee.emergencyContactPhone ?? "");
   const [error, setError] = useState("");
 
+  const { clearStep } = useFormStore();
   const mutation = useStepMutation(4);
 
   function handleSubmit(e: React.FormEvent) {
@@ -423,7 +436,7 @@ function Step4({
         emergencyContactName: emergencyContactName.trim(),
         emergencyContactPhone: emergencyContactPhone.trim(),
       },
-      { onSuccess },
+      { onSuccess: () => { clearStep(4); onSuccess(); } },
     );
   }
 
@@ -553,14 +566,11 @@ function Step5({
   attendee: Attendee;
   onSuccess: () => void;
 }) {
-  const [partnerStudentEmail, setPartnerStudentEmail] = useState(
-    attendee.partnerStudentEmail ?? "",
-  );
-  const [partnerStudentFullName, setPartnerStudentFullName] = useState(
-    attendee.partnerStudentFullName ?? "",
-  );
+  const [partnerStudentEmail, setPartnerStudentEmail] = useDraftField(5, "partnerStudentEmail", attendee.partnerStudentEmail ?? "");
+  const [partnerStudentFullName, setPartnerStudentFullName] = useDraftField(5, "partnerStudentFullName", attendee.partnerStudentFullName ?? "");
   const [error, setError] = useState("");
 
+  const { clearStep } = useFormStore();
   const mutation = useStepMutation(5);
 
   function handleSubmit(e: React.FormEvent) {
@@ -581,7 +591,7 @@ function Step5({
         partnerStudentEmail: partnerStudentEmail.trim(),
         partnerStudentFullName: partnerStudentFullName.trim(),
       },
-      { onSuccess },
+      { onSuccess: () => { clearStep(5); onSuccess(); } },
     );
   }
 
@@ -865,9 +875,10 @@ function Step9({
   year: NonNullable<YearConfig>;
   onSuccess: () => void;
 }) {
-  const [answer, setAnswer] = useState("");
+  const [answer, setAnswer] = useDraftField(9, "answer", "");
   const [error, setError] = useState("");
 
+  const { clearStep } = useFormStore();
   const mutation = useStepMutation(9);
 
   function handleSubmit(e: React.FormEvent) {
@@ -898,7 +909,7 @@ function Step9({
       }
     }
 
-    mutation.mutate({ refundDateAnswer: answer }, { onSuccess });
+    mutation.mutate({ refundDateAnswer: answer }, { onSuccess: () => { clearStep(9); onSuccess(); } });
   }
 
   return (
