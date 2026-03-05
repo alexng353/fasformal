@@ -630,9 +630,9 @@ function PaymentTab({ form, setForm }: TabProps) {
 }
 
 function RefundTab({ form, setForm }: TabProps) {
-  // Convert ISO timestamp to local date string for the input
+  // Convert to local datetime string for the input — value may be a Date or ISO string
   const dateValue = form.refundDeadline
-    ? form.refundDeadline.slice(0, 16) // "YYYY-MM-DDTHH:mm"
+    ? new Date(form.refundDeadline).toISOString().slice(0, 16)
     : "";
 
   return (
