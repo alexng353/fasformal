@@ -67,22 +67,22 @@ export const reviewerModule = new Elysia({ prefix: "/reviewer" })
   // Get single submission
   .get(
     "/submissions/:id",
-    async ({ params, user, error }) => {
+    async ({ params, user, status }) => {
       const attendee = await db.query.attendees.findFirst({
         where: eq(attendees.id, params.id),
       });
-      if (!attendee) return error(404, "Submission not found");
+      if (!attendee) return status(404, "Submission not found");
 
       // Check DSU access for reviewers
       if (user.role === "reviewer") {
         if (!attendee.dsuId) {
-          return error(403, "Access denied to this submission");
+          return status(403, "Access denied to this submission");
         }
         const assignments = await db.query.reviewerDsus.findMany({
           where: eq(reviewerDsus.userId, user.id),
         });
         if (!assignments.some((a) => a.dsuId === attendee.dsuId)) {
-          return error(403, "Access denied to this submission");
+          return status(403, "Access denied to this submission");
         }
       }
 
@@ -94,22 +94,22 @@ export const reviewerModule = new Elysia({ prefix: "/reviewer" })
   // Update submission (reviewer checklist)
   .patch(
     "/submissions/:id",
-    async ({ params, body, user, error }) => {
+    async ({ params, body, user, status }) => {
       const attendee = await db.query.attendees.findFirst({
         where: eq(attendees.id, params.id),
       });
-      if (!attendee) return error(404, "Submission not found");
+      if (!attendee) return status(404, "Submission not found");
 
       // Check DSU access for reviewers
       if (user.role === "reviewer") {
         if (!attendee.dsuId) {
-          return error(403, "Access denied to this submission");
+          return status(403, "Access denied to this submission");
         }
         const assignments = await db.query.reviewerDsus.findMany({
           where: eq(reviewerDsus.userId, user.id),
         });
         if (!assignments.some((a) => a.dsuId === attendee.dsuId)) {
-          return error(403, "Access denied to this submission");
+          return status(403, "Access denied to this submission");
         }
       }
 

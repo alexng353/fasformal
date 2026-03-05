@@ -16,7 +16,12 @@ export const settingsModule = new Elysia({ prefix: "/settings" })
   .post(
     "/years",
     async ({ body }) => {
-      const [year] = await db.insert(years).values(body).returning();
+      const { refundDeadline, submissionDeadline, ...rest } = body;
+      const [year] = await db.insert(years).values({
+        ...rest,
+        refundDeadline: refundDeadline ? new Date(refundDeadline) : refundDeadline === null ? null : undefined,
+        submissionDeadline: submissionDeadline ? new Date(submissionDeadline) : submissionDeadline === null ? null : undefined,
+      }).returning();
       return year;
     },
     {
@@ -196,17 +201,17 @@ export const settingsModule = new Elysia({ prefix: "/settings" })
   // Create reviewer-DSU assignment
   .post(
     "/years/:id/reviewer-assignments",
-    async ({ params, body, error }) => {
+    async ({ params, body, status }) => {
       const dsu = await db.query.dsus.findFirst({
         where: and(eq(dsus.id, body.dsuId), eq(dsus.yearId, params.id)),
       });
-      if (!dsu) return error(404, "DSU not found for this year");
+      if (!dsu) return status(404, "DSU not found for this year");
 
       const user = await db.query.users.findFirst({
         where: eq(users.id, body.userId),
       });
       if (!user || user.role !== "reviewer")
-        return error(400, "User is not a reviewer");
+        return status(400, "User is not a reviewer");
 
       const [assignment] = await db
         .insert(reviewerDsus)

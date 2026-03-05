@@ -19,14 +19,14 @@ export const authModule = new Elysia({ prefix: "/auth" })
   // Admin login
   .post(
     "/admin/login",
-    async ({ body, cookie, error }) => {
+    async ({ body, cookie, status }) => {
       const user = await db.query.users.findFirst({
         where: eq(users.email, body.email),
       });
-      if (!user) return error(401, "Invalid credentials");
+      if (!user) return status(401, "Invalid credentials");
 
       const valid = await Bun.password.verify(body.password, user.passwordHash);
-      if (!valid) return error(401, "Invalid credentials");
+      if (!valid) return status(401, "Invalid credentials");
 
       const token = generateSessionToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
@@ -37,7 +37,7 @@ export const authModule = new Elysia({ prefix: "/auth" })
         expiresAt,
       });
 
-      cookie.admin_session.set({
+      cookie.admin_session!.set({
         value: token,
         httpOnly: true,
         sameSite: "lax",
@@ -57,10 +57,10 @@ export const authModule = new Elysia({ prefix: "/auth" })
 
   // Admin logout
   .post("/admin/logout", async ({ cookie }) => {
-    const token = cookie.admin_session?.value;
+    const token = cookie.admin_session?.value as string | undefined;
     if (token) {
       await db.delete(sessions).where(eq(sessions.sessionToken, token));
-      cookie.admin_session.remove();
+      cookie.admin_session!.remove();
     }
     return { ok: true };
   })
@@ -68,16 +68,16 @@ export const authModule = new Elysia({ prefix: "/auth" })
   // Get invite info
   .get(
     "/invite/:token",
-    async ({ params, error }) => {
+    async ({ params, status }) => {
       const invite = await db.query.inviteLinks.findFirst({
         where: and(
           eq(inviteLinks.token, params.token),
           gt(inviteLinks.expiresAt, new Date())
         ),
       });
-      if (!invite) return error(404, "Invalid or expired invite link");
+      if (!invite) return status(404, "Invalid or expired invite link");
       if (invite.currentUses >= invite.maxUses)
-        return error(410, "Invite link has been fully used");
+        return status(410, "Invite link has been fully used");
       return { role: invite.role };
     },
     { params: t.Object({ token: t.String() }) }
@@ -86,7 +86,7 @@ export const authModule = new Elysia({ prefix: "/auth" })
   // Accept invite — create account
   .post(
     "/invite/accept",
-    async ({ body, error }) => {
+    async ({ body, status }) => {
       // Atomically claim one use of the invite link
       const [invite] = await db
         .update(inviteLinks)
@@ -99,7 +99,7 @@ export const authModule = new Elysia({ prefix: "/auth" })
           )
         )
         .returning();
-      if (!invite) return error(410, "Invalid, expired, or fully used invite link");
+      if (!invite) return status(410, "Invalid, expired, or fully used invite link");
 
       const existing = await db.query.users.findFirst({
         where: eq(users.email, body.email),
@@ -110,7 +110,7 @@ export const authModule = new Elysia({ prefix: "/auth" })
           .update(inviteLinks)
           .set({ currentUses: sql`${inviteLinks.currentUses} - 1` })
           .where(eq(inviteLinks.id, invite.id));
-        return error(409, "Email already registered");
+        return status(409, "Email already registered");
       }
 
       const passwordHash = await Bun.password.hash(body.password);
@@ -136,20 +136,20 @@ export const authModule = new Elysia({ prefix: "/auth" })
   // Attendee: request OTP code
   .post(
     "/attendee/request-code",
-    async ({ body, error }) => {
+    async ({ body, status }) => {
       const activeYear = await db.query.years.findFirst({
         where: eq(years.isActive, true),
       });
-      if (!activeYear) return error(400, "No active event year");
+      if (!activeYear) return status(400, "No active event year");
 
       if (activeYear.submissionDeadline && new Date() > activeYear.submissionDeadline) {
-        return error(400, "Registration is closed for this event");
+        return status(400, "Registration is closed for this event");
       }
 
       if (activeYear.emailDomainRestriction) {
         const domain = body.email.split("@")[1];
         if (domain !== activeYear.emailDomainRestriction) {
-          return error(400, `Email must end with @${activeYear.emailDomainRestriction}`);
+          return status(400, `Email must end with @${activeYear.emailDomainRestriction}`);
         }
       }
 
@@ -162,7 +162,7 @@ export const authModule = new Elysia({ prefix: "/auth" })
         ),
       });
       if (recentCodes.length >= 3) {
-        return error(429, "Too many code requests. Please wait a few minutes.");
+        return status(429, "Too many code requests. Please wait a few minutes.");
       }
 
       const code = generateOtp();
@@ -191,11 +191,11 @@ export const authModule = new Elysia({ prefix: "/auth" })
   // Attendee: verify OTP code
   .post(
     "/attendee/verify-code",
-    async ({ body, cookie, error }) => {
+    async ({ body, cookie, status }) => {
       const activeYear = await db.query.years.findFirst({
         where: eq(years.isActive, true),
       });
-      if (!activeYear) return error(400, "No active event year");
+      if (!activeYear) return status(400, "No active event year");
 
       // Find the most recent unexpired code for this email+year
       const codeRecord = await db.query.emailCodes.findFirst({
@@ -207,9 +207,9 @@ export const authModule = new Elysia({ prefix: "/auth" })
         orderBy: (c, { desc }) => desc(c.createdAt),
       });
 
-      if (!codeRecord) return error(401, "Invalid or expired code");
-      if (codeRecord.usedAt) return error(401, "Code already used");
-      if (codeRecord.attempts >= 5) return error(429, "Too many attempts. Please request a new code.");
+      if (!codeRecord) return status(401, "Invalid or expired code");
+      if (codeRecord.usedAt) return status(401, "Code already used");
+      if (codeRecord.attempts >= 5) return status(429, "Too many attempts. Please request a new code.");
 
       // Wrong code — increment attempts
       if (codeRecord.code !== body.code) {
@@ -217,7 +217,7 @@ export const authModule = new Elysia({ prefix: "/auth" })
           .update(emailCodes)
           .set({ attempts: sql`${emailCodes.attempts} + 1` })
           .where(eq(emailCodes.id, codeRecord.id));
-        return error(401, "Invalid or expired code");
+        return status(401, "Invalid or expired code");
       }
 
       // Correct code — mark as used
@@ -264,7 +264,7 @@ export const authModule = new Elysia({ prefix: "/auth" })
         expiresAt,
       });
 
-      cookie.attendee_session.set({
+      cookie.attendee_session!.set({
         value: token,
         httpOnly: true,
         sameSite: "lax",
@@ -283,9 +283,9 @@ export const authModule = new Elysia({ prefix: "/auth" })
   )
 
   // Get current user (admin/reviewer)
-  .get("/me", async ({ cookie, error }) => {
-    const token = cookie.admin_session?.value;
-    if (!token) return error(401, "Not authenticated");
+  .get("/me", async ({ cookie, status }) => {
+    const token = cookie.admin_session?.value as string | undefined;
+    if (!token) return status(401, "Not authenticated");
 
     const session = await db.query.sessions.findFirst({
       where: and(
@@ -293,20 +293,20 @@ export const authModule = new Elysia({ prefix: "/auth" })
         gt(sessions.expiresAt, new Date())
       ),
     });
-    if (!session) return error(401, "Session expired");
+    if (!session) return status(401, "Session expired");
 
     const user = await db.query.users.findFirst({
       where: eq(users.id, session.userId),
     });
-    if (!user) return error(401, "User not found");
+    if (!user) return status(401, "User not found");
 
     return { id: user.id, email: user.email, role: user.role, name: user.name };
   })
 
   // Get current attendee
-  .get("/attendee/me", async ({ cookie, error }) => {
-    const token = cookie.attendee_session?.value;
-    if (!token) return error(401, "Not authenticated");
+  .get("/attendee/me", async ({ cookie, status }) => {
+    const token = cookie.attendee_session?.value as string | undefined;
+    if (!token) return status(401, "Not authenticated");
 
     const session = await db.query.attendeeSessions.findFirst({
       where: and(
@@ -314,13 +314,13 @@ export const authModule = new Elysia({ prefix: "/auth" })
         gt(attendeeSessions.expiresAt, new Date())
       ),
     });
-    if (!session) return error(401, "Session expired");
+    if (!session) return status(401, "Session expired");
 
     const attendee = await db.query.attendees.findFirst({
       where: eq(attendees.id, session.attendeeId),
     });
-    if (!attendee) return error(401, "Attendee not found");
+    if (!attendee) return status(401, "Attendee not found");
 
-    const { reviewedById, reviewNote, status, ...safeAttendee } = attendee;
+    const { reviewedById, reviewNote, status: _, ...safeAttendee } = attendee;
     return safeAttendee;
   });

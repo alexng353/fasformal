@@ -86,15 +86,15 @@ export const formModule = new Elysia({ prefix: "/form" })
   // Update a form step
   .patch(
     "/step/:stepNumber",
-    async ({ params, body, attendee, error }) => {
+    async ({ params, body, attendee, status }) => {
       const stepNum = parseInt(params.stepNumber);
       if (isNaN(stepNum) || stepNum < 1 || stepNum > 10) {
-        return error(400, "Invalid step number");
+        return status(400, "Invalid step number");
       }
 
       // Can't skip ahead
       if (stepNum > attendee.currentStep) {
-        return error(400, "Cannot skip ahead");
+        return status(400, "Cannot skip ahead");
       }
 
       const update: Record<string, unknown> = { updatedAt: new Date() };
@@ -109,7 +109,7 @@ export const formModule = new Elysia({ prefix: "/form" })
                 where: eq(dsus.id, body.dsuId),
               });
               if (!dsu || dsu.yearId !== attendee.yearId) {
-                return error(400, "Invalid DSU selection");
+                return status(400, "Invalid DSU selection");
               }
             }
             update.dsuId = body.dsuId;

@@ -19,11 +19,11 @@ const app = new Elysia()
   .get("/health", () => ({ status: "ok" }))
   .get(
     "/years/:slug",
-    async ({ params, error }) => {
+    async ({ params, status }) => {
       const year = await db.query.years.findFirst({
         where: eq(years.formSlug, params.slug),
       });
-      if (!year) return error(404, "Event not found");
+      if (!year) return status(404, "Event not found");
       return {
         year: year.year,
         eventName: year.eventName,
