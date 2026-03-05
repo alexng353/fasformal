@@ -870,8 +870,9 @@ function DsuManager({ yearId }: { yearId: string }) {
           >
             <span className="text-sm text-gray-900">{dsu.name}</span>
             <button
-              onClick={() => {
+              onClick={(e) => {
                 if (
+                  e.shiftKey ||
                   window.confirm(
                     `Remove DSU "${dsu.name}"? This may affect existing assignments.`
                   )
