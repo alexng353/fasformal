@@ -1,10 +1,13 @@
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { authModule } from "./modules/auth";
 import { settingsModule } from "./modules/settings";
 import { adminModule } from "./modules/admin";
 import { formModule } from "./modules/form";
 import { reviewerModule } from "./modules/reviewer";
+import { db } from "./db";
+import { years } from "./db/schema";
+import { eq } from "drizzle-orm";
 
 const app = new Elysia()
   .use(
@@ -14,6 +17,22 @@ const app = new Elysia()
     })
   )
   .get("/health", () => ({ status: "ok" }))
+  .get(
+    "/years/:slug",
+    async ({ params, error }) => {
+      const year = await db.query.years.findFirst({
+        where: eq(years.formSlug, params.slug),
+      });
+      if (!year) return error(404, "Event not found");
+      return {
+        year: year.year,
+        eventName: year.eventName,
+        isActive: year.isActive,
+        submissionDeadline: year.submissionDeadline?.toISOString() ?? null,
+      };
+    },
+    { params: t.Object({ slug: t.String() }) }
+  )
   .use(authModule)
   .use(settingsModule)
   .use(adminModule)

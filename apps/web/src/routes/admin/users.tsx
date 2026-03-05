@@ -40,7 +40,7 @@ function UsersPage() {
   const [deleteModal, setDeleteModal] = useState<{ id: string; name: string } | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
-  const [flashMsg, setFlashMsg] = useState<string | null>(null);
+  const [flashMsg, setFlashMsg] = useState<{ text: string; variant: "success" | "error" } | null>(null);
 
   const { data: currentUser } = useQuery({
     queryKey: ["auth-me"],
@@ -86,8 +86,8 @@ function UsersPage() {
     },
   });
 
-  function flash(msg: string) {
-    setFlashMsg(msg);
+  function flash(msg: string, variant: "success" | "error" = "success") {
+    setFlashMsg({ text: msg, variant });
     setTimeout(() => setFlashMsg(null), 3000);
   }
 
@@ -114,8 +114,8 @@ function UsersPage() {
       </div>
 
       {flashMsg && (
-        <div className="mb-4 bg-green-50 text-green-700 p-3 rounded-lg text-sm">
-          {flashMsg}
+        <div className={`mb-4 p-3 rounded-lg text-sm ${flashMsg.variant === "error" ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>
+          {flashMsg.text}
         </div>
       )}
 
@@ -124,7 +124,7 @@ function UsersPage() {
       ) : !users || users.length === 0 ? (
         <p className="text-gray-500">No users found.</p>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-lg">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left bg-gray-50">
@@ -176,6 +176,10 @@ function UsersPage() {
                             label: "Delete",
                             variant: "danger",
                             onClick: () => {
+                              if (isSelf) {
+                                flash("You cannot delete your own account", "error");
+                                return;
+                              }
                               setDeleteModal({ id: u.id, name: u.name });
                               deleteUser.reset();
                             },

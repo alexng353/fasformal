@@ -9,7 +9,7 @@ import {
   attendeeSessions,
   years,
 } from "../../db/schema";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, sql } from "drizzle-orm";
 import { generateSessionToken } from "../../lib/session";
 import { generateOtp } from "../../lib/otp";
 import { generateConfirmationNumber } from "../../lib/confirmation";
@@ -87,20 +87,31 @@ export const authModule = new Elysia({ prefix: "/auth" })
   .post(
     "/invite/accept",
     async ({ body, error }) => {
-      const invite = await db.query.inviteLinks.findFirst({
-        where: and(
-          eq(inviteLinks.token, body.token),
-          gt(inviteLinks.expiresAt, new Date())
-        ),
-      });
-      if (!invite) return error(400, "Invalid or expired invite link");
-      if (invite.currentUses >= invite.maxUses)
-        return error(410, "Invite link has been fully used");
+      // Atomically claim one use of the invite link
+      const [invite] = await db
+        .update(inviteLinks)
+        .set({ currentUses: sql`${inviteLinks.currentUses} + 1` })
+        .where(
+          and(
+            eq(inviteLinks.token, body.token),
+            gt(inviteLinks.expiresAt, new Date()),
+            sql`${inviteLinks.currentUses} < ${inviteLinks.maxUses}`,
+          )
+        )
+        .returning();
+      if (!invite) return error(410, "Invalid, expired, or fully used invite link");
 
       const existing = await db.query.users.findFirst({
         where: eq(users.email, body.email),
       });
-      if (existing) return error(409, "Email already registered");
+      if (existing) {
+        // Roll back the use count since we didn't actually create a user
+        await db
+          .update(inviteLinks)
+          .set({ currentUses: sql`${inviteLinks.currentUses} - 1` })
+          .where(eq(inviteLinks.id, invite.id));
+        return error(409, "Email already registered");
+      }
 
       const passwordHash = await Bun.password.hash(body.password);
       await db.insert(users).values({
@@ -109,11 +120,6 @@ export const authModule = new Elysia({ prefix: "/auth" })
         role: invite.role,
         name: body.name,
       });
-
-      await db
-        .update(inviteLinks)
-        .set({ currentUses: invite.currentUses + 1 })
-        .where(eq(inviteLinks.id, invite.id));
 
       return { ok: true };
     },
@@ -136,11 +142,27 @@ export const authModule = new Elysia({ prefix: "/auth" })
       });
       if (!activeYear) return error(400, "No active event year");
 
+      if (activeYear.submissionDeadline && new Date() > activeYear.submissionDeadline) {
+        return error(400, "Registration is closed for this event");
+      }
+
       if (activeYear.emailDomainRestriction) {
         const domain = body.email.split("@")[1];
         if (domain !== activeYear.emailDomainRestriction) {
           return error(400, `Email must end with @${activeYear.emailDomainRestriction}`);
         }
+      }
+
+      // Rate limit: max 3 codes per email per 10 minutes
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      const recentCodes = await db.query.emailCodes.findMany({
+        where: and(
+          eq(emailCodes.email, body.email),
+          gt(emailCodes.createdAt, tenMinutesAgo),
+        ),
+      });
+      if (recentCodes.length >= 3) {
+        return error(429, "Too many code requests. Please wait a few minutes.");
       }
 
       const code = generateOtp();
@@ -175,18 +197,30 @@ export const authModule = new Elysia({ prefix: "/auth" })
       });
       if (!activeYear) return error(400, "No active event year");
 
+      // Find the most recent unexpired code for this email+year
       const codeRecord = await db.query.emailCodes.findFirst({
         where: and(
           eq(emailCodes.email, body.email),
-          eq(emailCodes.code, body.code),
           eq(emailCodes.yearId, activeYear.id),
           gt(emailCodes.expiresAt, new Date())
         ),
+        orderBy: (c, { desc }) => desc(c.createdAt),
       });
+
       if (!codeRecord) return error(401, "Invalid or expired code");
       if (codeRecord.usedAt) return error(401, "Code already used");
+      if (codeRecord.attempts >= 5) return error(429, "Too many attempts. Please request a new code.");
 
-      // Mark code as used
+      // Wrong code — increment attempts
+      if (codeRecord.code !== body.code) {
+        await db
+          .update(emailCodes)
+          .set({ attempts: sql`${emailCodes.attempts} + 1` })
+          .where(eq(emailCodes.id, codeRecord.id));
+        return error(401, "Invalid or expired code");
+      }
+
+      // Correct code — mark as used
       await db
         .update(emailCodes)
         .set({ usedAt: new Date() })
@@ -287,5 +321,6 @@ export const authModule = new Elysia({ prefix: "/auth" })
     });
     if (!attendee) return error(401, "Attendee not found");
 
-    return attendee;
+    const { reviewedById, reviewNote, status, ...safeAttendee } = attendee;
+    return safeAttendee;
   });

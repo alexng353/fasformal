@@ -179,7 +179,7 @@ function InvitesPage() {
 }
 
 function CreateInviteForm({ onCreated }: { onCreated: () => void }) {
-  const [role, setRole] = useState("reviewer");
+  const [role, setRole] = useState<"admin" | "reviewer">("reviewer");
   const [maxUses, setMaxUses] = useState(1);
   const [expiresInHours, setExpiresInHours] = useState(72);
 

@@ -25,6 +25,8 @@ interface Year {
   paymentDescriptionTemplate: string;
   paymentDeadlineHours: number;
   refundDeadline: string | null;
+  submissionDeadline: string | null;
+  formSlug: string | null;
   tosText: string;
   waiverLink: string;
   waiverSubmissionEmail: string;
@@ -40,6 +42,7 @@ interface Dsu {
 
 type Tab =
   | "general"
+  | "registration"
   | "pricing"
   | "payment"
   | "refund"
@@ -49,6 +52,7 @@ type Tab =
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "general", label: "General" },
+  { key: "registration", label: "Registration" },
   { key: "pricing", label: "Pricing" },
   { key: "payment", label: "Payment" },
   { key: "refund", label: "Refund" },
@@ -89,6 +93,8 @@ function defaultFormState(): Year {
     paymentDescriptionTemplate: "",
     paymentDeadlineHours: 48,
     refundDeadline: null,
+    submissionDeadline: null,
+    formSlug: null,
     tosText: "",
     waiverLink: "",
     waiverSubmissionEmail: "",
@@ -156,6 +162,8 @@ function SettingsPage() {
         paymentDescriptionTemplate: data.paymentDescriptionTemplate,
         paymentDeadlineHours: data.paymentDeadlineHours,
         refundDeadline: data.refundDeadline,
+        submissionDeadline: data.submissionDeadline,
+        formSlug: data.formSlug,
         tosText: data.tosText,
         waiverLink: data.waiverLink,
         waiverSubmissionEmail: data.waiverSubmissionEmail,
@@ -185,6 +193,8 @@ function SettingsPage() {
         paymentDescriptionTemplate: data.paymentDescriptionTemplate,
         paymentDeadlineHours: data.paymentDeadlineHours,
         refundDeadline: data.refundDeadline,
+        submissionDeadline: data.submissionDeadline,
+        formSlug: data.formSlug,
         tosText: data.tosText,
         waiverLink: data.waiverLink,
         waiverSubmissionEmail: data.waiverSubmissionEmail,
@@ -375,6 +385,9 @@ function SettingsPage() {
                 {activeTab === "general" && (
                   <GeneralTab form={form} setForm={setForm} isAdding={isAdding} />
                 )}
+                {activeTab === "registration" && (
+                  <RegistrationTab form={form} setForm={setForm} />
+                )}
                 {activeTab === "pricing" && (
                   <PricingTab form={form} setForm={setForm} />
                 )}
@@ -473,6 +486,78 @@ function GeneralTab({ form, setForm, isAdding }: TabProps) {
           className={inputClass}
         />
       </div>
+    </div>
+  );
+}
+
+function RegistrationTab({ form, setForm }: TabProps) {
+  const deadlineValue = form.submissionDeadline
+    ? toLocalDatetimeString(form.submissionDeadline)
+    : "";
+
+  const canonicalUrl = form.formSlug
+    ? `${window.location.origin}/${form.formSlug}/register`
+    : null;
+
+  return (
+    <div className="space-y-4 max-w-lg">
+      <div>
+        <label className={labelClass}>Submission Deadline</label>
+        <input
+          type="datetime-local"
+          value={deadlineValue}
+          onChange={(e) =>
+            setForm((f) => ({
+              ...f,
+              submissionDeadline: e.target.value
+                ? new Date(e.target.value).toISOString()
+                : null,
+            }))
+          }
+          className={inputClass}
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          After this date, new registrations will be blocked.
+          Leave blank for no deadline.
+        </p>
+      </div>
+      {form.submissionDeadline && (
+        <button
+          type="button"
+          onClick={() => setForm((f) => ({ ...f, submissionDeadline: null }))}
+          className="text-sm text-red-600 hover:text-red-700"
+        >
+          Clear submission deadline
+        </button>
+      )}
+
+      <div>
+        <label className={labelClass}>Form Slug</label>
+        <input
+          type="text"
+          value={form.formSlug ?? ""}
+          onChange={(e) =>
+            setForm((f) => ({
+              ...f,
+              formSlug: e.target.value || null,
+            }))
+          }
+          placeholder="e.g. 2026"
+          className={inputClass}
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          Creates a canonical registration link at{" "}
+          <code className="bg-gray-100 px-1 rounded">/{form.formSlug || "<slug>"}/register</code>.
+          Leave blank to disable.
+        </p>
+      </div>
+
+      {canonicalUrl && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-sm text-blue-800 font-medium mb-1">Registration Link</p>
+          <code className="text-sm text-blue-700 break-all">{canonicalUrl}</code>
+        </div>
+      )}
     </div>
   );
 }

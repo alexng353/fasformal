@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api";
 import { useState } from "react";
 
@@ -18,7 +18,8 @@ const statusColors: Record<string, string> = {
 
 function ReviewerDashboard() {
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState("");
+  type AttendeeStatus = "pending" | "verified" | "paid" | "banned" | "waitlisted" | "admitted";
+  const [statusFilter, setStatusFilter] = useState<AttendeeStatus | "">("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { data: submissions, isLoading } = useQuery({

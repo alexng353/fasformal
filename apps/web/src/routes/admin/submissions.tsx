@@ -39,7 +39,8 @@ function formatDate(date: string | Date | null | undefined): string {
 
 function SubmissionsPage() {
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState("");
+  type AttendeeStatus = "pending" | "verified" | "paid" | "banned" | "waitlisted" | "admitted";
+  const [statusFilter, setStatusFilter] = useState<AttendeeStatus | "">("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { data: submissions, isLoading } = useQuery({
@@ -74,7 +75,7 @@ function SubmissionsPage() {
         </div>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => setStatusFilter(e.target.value as AttendeeStatus | "")}
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
         >
           <option value="">All statuses</option>

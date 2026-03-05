@@ -45,6 +45,8 @@ export const requireStaff = new Elysia({ name: "requireStaff" }).derive(
       where: eq(users.id, session.userId),
     });
     if (!user) return error(401, "User not found");
+    if (user.role !== "admin" && user.role !== "reviewer")
+      return error(403, "Staff access required");
 
     return { user };
   }

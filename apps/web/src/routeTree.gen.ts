@@ -24,6 +24,7 @@ import { Route as AdminUsersRouteImport } from "./routes/admin/users"
 import { Route as AdminSubmissionsRouteImport } from "./routes/admin/submissions"
 import { Route as AdminSettingsRouteImport } from "./routes/admin/settings"
 import { Route as AdminInvitesRouteImport } from "./routes/admin/invites"
+import { Route as SlugRegisterRouteImport } from "./routes/$slug/register"
 
 const VerifyRoute = VerifyRouteImport.update({
   id: "/verify",
@@ -100,6 +101,11 @@ const AdminInvitesRoute = AdminInvitesRouteImport.update({
   path: "/invites",
   getParentRoute: () => AdminRoute,
 } as any)
+const SlugRegisterRoute = SlugRegisterRouteImport.update({
+  id: "/$slug/register",
+  path: "/$slug/register",
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   "/register": typeof RegisterRoute
   "/reviewer": typeof ReviewerRouteWithChildren
   "/verify": typeof VerifyRoute
+  "/$slug/register": typeof SlugRegisterRoute
   "/admin/invites": typeof AdminInvitesRoute
   "/admin/settings": typeof AdminSettingsRoute
   "/admin/submissions": typeof AdminSubmissionsRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   "/login": typeof LoginRoute
   "/register": typeof RegisterRoute
   "/verify": typeof VerifyRoute
+  "/$slug/register": typeof SlugRegisterRoute
   "/admin/invites": typeof AdminInvitesRoute
   "/admin/settings": typeof AdminSettingsRoute
   "/admin/submissions": typeof AdminSubmissionsRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   "/register": typeof RegisterRoute
   "/reviewer": typeof ReviewerRouteWithChildren
   "/verify": typeof VerifyRoute
+  "/$slug/register": typeof SlugRegisterRoute
   "/admin/invites": typeof AdminInvitesRoute
   "/admin/settings": typeof AdminSettingsRoute
   "/admin/submissions": typeof AdminSubmissionsRoute
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | "/register"
     | "/reviewer"
     | "/verify"
+    | "/$slug/register"
     | "/admin/invites"
     | "/admin/settings"
     | "/admin/submissions"
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | "/login"
     | "/register"
     | "/verify"
+    | "/$slug/register"
     | "/admin/invites"
     | "/admin/settings"
     | "/admin/submissions"
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | "/register"
     | "/reviewer"
     | "/verify"
+    | "/$slug/register"
     | "/admin/invites"
     | "/admin/settings"
     | "/admin/submissions"
@@ -211,6 +223,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ReviewerRoute: typeof ReviewerRouteWithChildren
   VerifyRoute: typeof VerifyRoute
+  SlugRegisterRoute: typeof SlugRegisterRoute
   InviteTokenRoute: typeof InviteTokenRoute
 }
 
@@ -321,6 +334,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AdminInvitesRouteImport
       parentRoute: typeof AdminRoute
     }
+    "/$slug/register": {
+      id: "/$slug/register"
+      path: "/$slug/register"
+      fullPath: "/$slug/register"
+      preLoaderRoute: typeof SlugRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -374,6 +394,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ReviewerRoute: ReviewerRouteWithChildren,
   VerifyRoute: VerifyRoute,
+  SlugRegisterRoute: SlugRegisterRoute,
   InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport

@@ -4,6 +4,15 @@ import { attendees, reviewerDsus, dsus, years } from "../../db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { requireStaff } from "../auth/guards";
 
+const tAttendeeStatus = t.Union([
+  t.Literal("pending"),
+  t.Literal("verified"),
+  t.Literal("paid"),
+  t.Literal("banned"),
+  t.Literal("waitlisted"),
+  t.Literal("admitted"),
+]);
+
 export const reviewerModule = new Elysia({ prefix: "/reviewer" })
   .use(requireStaff)
 
@@ -34,7 +43,7 @@ export const reviewerModule = new Elysia({ prefix: "/reviewer" })
 
       const conditions = [eq(attendees.yearId, activeYear.id)];
       if (query.status)
-        conditions.push(eq(attendees.status, query.status as any));
+        conditions.push(eq(attendees.status, query.status));
 
       const allAttendees = await db.query.attendees.findMany({
         where: and(...conditions),
@@ -50,7 +59,7 @@ export const reviewerModule = new Elysia({ prefix: "/reviewer" })
     },
     {
       query: t.Object({
-        status: t.Optional(t.String()),
+        status: t.Optional(tAttendeeStatus),
       }),
     }
   )
@@ -65,7 +74,10 @@ export const reviewerModule = new Elysia({ prefix: "/reviewer" })
       if (!attendee) return error(404, "Submission not found");
 
       // Check DSU access for reviewers
-      if (user.role === "reviewer" && attendee.dsuId) {
+      if (user.role === "reviewer") {
+        if (!attendee.dsuId) {
+          return error(403, "Access denied to this submission");
+        }
         const assignments = await db.query.reviewerDsus.findMany({
           where: eq(reviewerDsus.userId, user.id),
         });
@@ -89,7 +101,10 @@ export const reviewerModule = new Elysia({ prefix: "/reviewer" })
       if (!attendee) return error(404, "Submission not found");
 
       // Check DSU access for reviewers
-      if (user.role === "reviewer" && attendee.dsuId) {
+      if (user.role === "reviewer") {
+        if (!attendee.dsuId) {
+          return error(403, "Access denied to this submission");
+        }
         const assignments = await db.query.reviewerDsus.findMany({
           where: eq(reviewerDsus.userId, user.id),
         });
@@ -117,7 +132,7 @@ export const reviewerModule = new Elysia({ prefix: "/reviewer" })
     {
       params: t.Object({ id: t.String() }),
       body: t.Object({
-        status: t.Optional(t.String()),
+        status: t.Optional(tAttendeeStatus),
         reviewNote: t.Optional(t.Nullable(t.String())),
       }),
     }

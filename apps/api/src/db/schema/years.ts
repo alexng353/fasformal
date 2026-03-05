@@ -23,6 +23,8 @@ export const years = pgTable("years", {
   paymentDescriptionTemplate: text("payment_description_template").notNull(),
   paymentDeadlineHours: integer("payment_deadline_hours").notNull().default(48),
   refundDeadline: timestamp("refund_deadline", { withTimezone: true }),
+  submissionDeadline: timestamp("submission_deadline", { withTimezone: true }),
+  formSlug: text("form_slug"),
   tosText: text("tos_text").notNull(),
   waiverLink: text("waiver_link").notNull(),
   waiverSubmissionEmail: text("waiver_submission_email").notNull(),

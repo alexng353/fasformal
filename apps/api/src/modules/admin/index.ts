@@ -5,6 +5,17 @@ import { eq, and, gt } from "drizzle-orm";
 import { requireAdmin } from "../auth/guards";
 import { randomBytes } from "crypto";
 
+const tAttendeeStatus = t.Union([
+  t.Literal("pending"),
+  t.Literal("verified"),
+  t.Literal("paid"),
+  t.Literal("banned"),
+  t.Literal("waitlisted"),
+  t.Literal("admitted"),
+]);
+
+const tUserRole = t.Union([t.Literal("admin"), t.Literal("reviewer")]);
+
 export const adminModule = new Elysia({ prefix: "/admin" })
   .use(requireAdmin)
 
@@ -15,7 +26,7 @@ export const adminModule = new Elysia({ prefix: "/admin" })
       const conditions = [];
       if (query.yearId) conditions.push(eq(attendees.yearId, query.yearId));
       if (query.status)
-        conditions.push(eq(attendees.status, query.status as any));
+        conditions.push(eq(attendees.status, query.status));
 
       const allAttendees = await db.query.attendees.findMany({
         where: conditions.length > 0 ? and(...conditions) : undefined,
@@ -26,7 +37,7 @@ export const adminModule = new Elysia({ prefix: "/admin" })
     {
       query: t.Object({
         yearId: t.Optional(t.String()),
-        status: t.Optional(t.String()),
+        status: t.Optional(tAttendeeStatus),
       }),
     }
   )
@@ -51,7 +62,7 @@ export const adminModule = new Elysia({ prefix: "/admin" })
       const [updated] = await db
         .update(attendees)
         .set({
-          status: body.status as any,
+          status: body.status,
           reviewedById: user.id,
           reviewNote: body.reviewNote,
           updatedAt: new Date(),
@@ -63,7 +74,7 @@ export const adminModule = new Elysia({ prefix: "/admin" })
     {
       params: t.Object({ id: t.String() }),
       body: t.Object({
-        status: t.String(),
+        status: tAttendeeStatus,
         reviewNote: t.Optional(t.Nullable(t.String())),
       }),
     }
@@ -144,7 +155,7 @@ export const adminModule = new Elysia({ prefix: "/admin" })
         .insert(inviteLinks)
         .values({
           token,
-          role: body.role as any,
+          role: body.role,
           createdById: user.id,
           expiresAt,
           maxUses: body.maxUses || 1,
@@ -154,7 +165,7 @@ export const adminModule = new Elysia({ prefix: "/admin" })
     },
     {
       body: t.Object({
-        role: t.String(),
+        role: tUserRole,
         maxUses: t.Optional(t.Number()),
         expiresInHours: t.Optional(t.Number()),
       }),

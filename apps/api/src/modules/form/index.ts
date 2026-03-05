@@ -4,6 +4,18 @@ import { attendees, years, dsus } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { requireAttendee } from "../auth/guards";
 
+const tDsuType = t.Union([
+  t.Literal("dsu"),
+  t.Literal("alumni"),
+  t.Literal("partner"),
+]);
+
+const tStudentStatus = t.Union([
+  t.Literal("full_time"),
+  t.Literal("part_time"),
+  t.Literal("not_student"),
+]);
+
 export const formModule = new Elysia({ prefix: "/form" })
   .use(requireAttendee)
 
@@ -30,6 +42,7 @@ export const formModule = new Elysia({ prefix: "/form" })
             paymentDescriptionTemplate: year.paymentDescriptionTemplate,
             paymentDeadlineHours: year.paymentDeadlineHours,
             refundDeadline: year.refundDeadline?.toISOString() ?? null,
+            submissionDeadline: year.submissionDeadline?.toISOString() ?? null,
             tosText: year.tosText,
             waiverLink: year.waiverLink,
             waiverSubmissionEmail: year.waiverSubmissionEmail,
@@ -62,6 +75,7 @@ export const formModule = new Elysia({ prefix: "/form" })
       paymentDescriptionTemplate: year.paymentDescriptionTemplate,
       paymentDeadlineHours: year.paymentDeadlineHours,
       refundDeadline: year.refundDeadline?.toISOString() ?? null,
+      submissionDeadline: year.submissionDeadline?.toISOString() ?? null,
       tosText: year.tosText,
       waiverLink: year.waiverLink,
       waiverSubmissionEmail: year.waiverSubmissionEmail,
@@ -88,7 +102,18 @@ export const formModule = new Elysia({ prefix: "/form" })
       switch (stepNum) {
         case 3: // DSU selection
           if (body.dsuType) update.dsuType = body.dsuType;
-          if (body.dsuId !== undefined) update.dsuId = body.dsuId;
+          if (body.dsuId !== undefined) {
+            if (body.dsuId) {
+              // Validate dsuId belongs to this attendee's year
+              const dsu = await db.query.dsus.findFirst({
+                where: eq(dsus.id, body.dsuId),
+              });
+              if (!dsu || dsu.yearId !== attendee.yearId) {
+                return error(400, "Invalid DSU selection");
+              }
+            }
+            update.dsuId = body.dsuId;
+          }
           if (body.specifiedDsu !== undefined)
             update.specifiedDsu = body.specifiedDsu;
           break;
@@ -184,7 +209,7 @@ export const formModule = new Elysia({ prefix: "/form" })
       params: t.Object({ stepNumber: t.String() }),
       body: t.Object({
         // Step 3
-        dsuType: t.Optional(t.String()),
+        dsuType: t.Optional(tDsuType),
         dsuId: t.Optional(t.Nullable(t.String())),
         specifiedDsu: t.Optional(t.Nullable(t.String())),
         // Step 4
@@ -192,7 +217,7 @@ export const formModule = new Elysia({ prefix: "/form" })
         lastName: t.Optional(t.String()),
         dateOfBirth: t.Optional(t.String()),
         dietaryRestrictions: t.Optional(t.Nullable(t.String())),
-        studentStatus: t.Optional(t.String()),
+        studentStatus: t.Optional(tStudentStatus),
         emergencyContactName: t.Optional(t.String()),
         emergencyContactPhone: t.Optional(t.String()),
         // Step 5

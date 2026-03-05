@@ -32,6 +32,8 @@ export const settingsModule = new Elysia({ prefix: "/settings" })
         paymentDescriptionTemplate: t.String(),
         paymentDeadlineHours: t.Optional(t.Number()),
         refundDeadline: t.Optional(t.Nullable(t.String())),
+        submissionDeadline: t.Optional(t.Nullable(t.String())),
+        formSlug: t.Optional(t.Nullable(t.String())),
         tosText: t.String(),
         waiverLink: t.String(),
         waiverSubmissionEmail: t.String(),
@@ -50,6 +52,12 @@ export const settingsModule = new Elysia({ prefix: "/settings" })
           ? null
           : undefined;
 
+      const submissionDeadline = body.submissionDeadline
+        ? new Date(body.submissionDeadline)
+        : body.submissionDeadline === null
+          ? null
+          : undefined;
+
       const updateData: Record<string, unknown> = {
         ...body,
         updatedAt: new Date(),
@@ -58,6 +66,11 @@ export const settingsModule = new Elysia({ prefix: "/settings" })
         updateData.refundDeadline = refundDeadline;
       } else {
         delete updateData.refundDeadline;
+      }
+      if (submissionDeadline !== undefined) {
+        updateData.submissionDeadline = submissionDeadline;
+      } else {
+        delete updateData.submissionDeadline;
       }
 
       const [updated] = await db
@@ -80,6 +93,8 @@ export const settingsModule = new Elysia({ prefix: "/settings" })
         paymentDescriptionTemplate: t.Optional(t.String()),
         paymentDeadlineHours: t.Optional(t.Number()),
         refundDeadline: t.Optional(t.Nullable(t.String())),
+        submissionDeadline: t.Optional(t.Nullable(t.String())),
+        formSlug: t.Optional(t.Nullable(t.String())),
         tosText: t.Optional(t.String()),
         waiverLink: t.Optional(t.String()),
         waiverSubmissionEmail: t.Optional(t.String()),
