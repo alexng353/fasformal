@@ -9,6 +9,7 @@
     "db:generate": "bun run --filter '@fasformal/api' db:generate",
     "db:migrate": "bun run --filter '@fasformal/api' db:migrate",
     "db:seed": "bun run --filter '@fasformal/api' db:seed",
-    "db:start": "docker compose up -d && bun db:migrate && bun db:seed"
+    "db:start": "docker compose up -d && bun db:migrate && bun db:seed",
+    "db:reset": "docker compose down -v && bun db:start"
   }
 }
