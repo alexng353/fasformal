@@ -53,10 +53,15 @@ if (hasWebDist) {
     const filePath = path.join(webDistDir, reqPath);
 
     if (reqPath && existsSync(filePath) && !filePath.endsWith("/")) {
-      return new Response(Bun.file(filePath));
+      const file = Bun.file(filePath);
+      return new Response(file, {
+        headers: { "Content-Type": file.type },
+      });
     }
 
-    return new Response(Bun.file(path.join(webDistDir, "index.html")));
+    return new Response(Bun.file(path.join(webDistDir, "index.html")), {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
   });
 }
 
