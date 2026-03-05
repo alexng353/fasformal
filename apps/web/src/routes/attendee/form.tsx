@@ -211,7 +211,7 @@ function useStepMutation(stepNumber: number) {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["form-state"] });
+      return queryClient.invalidateQueries({ queryKey: ["form-state"] });
     },
   });
 }
@@ -883,9 +883,11 @@ function Step9({
     // Validate that the answer matches the actual refund deadline
     if (year.refundDeadline) {
       const actual = new Date(year.refundDeadline);
-      const provided = new Date(answer);
+      // answer is "YYYY-MM-DD" from date input — append T00:00:00 to parse as local time
+      // (date-only strings are parsed as UTC per spec, causing off-by-one in western timezones)
+      const provided = new Date(answer + "T00:00:00");
 
-      // Compare year-month-day only
+      // Compare year-month-day only (both in local time)
       const actualDate = `${actual.getFullYear()}-${String(actual.getMonth() + 1).padStart(2, "0")}-${String(actual.getDate()).padStart(2, "0")}`;
       const providedDate = `${provided.getFullYear()}-${String(provided.getMonth() + 1).padStart(2, "0")}-${String(provided.getDate()).padStart(2, "0")}`;
 
