@@ -77,6 +77,31 @@ export const adminModule = new Elysia({ prefix: "/admin" })
     return allUsers.map(({ passwordHash, ...u }) => u);
   })
 
+  // Change user password (admin can change any user's password)
+  .patch(
+    "/users/:id/password",
+    async ({ params, body, error }) => {
+      const target = await db.query.users.findFirst({
+        where: eq(users.id, params.id),
+      });
+      if (!target) return error(404, "User not found");
+
+      const passwordHash = await Bun.password.hash(body.password);
+      await db
+        .update(users)
+        .set({ passwordHash, updatedAt: new Date() })
+        .where(eq(users.id, params.id));
+
+      return { ok: true };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({
+        password: t.String({ minLength: 8 }),
+      }),
+    }
+  )
+
   // Delete user
   .delete(
     "/users/:id",

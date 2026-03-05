@@ -24,12 +24,28 @@ function formatDate(date: string | Date | null | undefined): string {
 function UsersPage() {
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [changingPasswordId, setChangingPasswordId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
       const { data } = await api.admin.users.get();
       return data ?? [];
+    },
+  });
+
+  const changePassword = useMutation({
+    mutationFn: async ({ id, password }: { id: string; password: string }) => {
+      const { error } = await api.admin.users({ id }).password.patch({ password });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setChangingPasswordId(null);
+      setNewPassword("");
+      setPasswordMsg("Password changed");
+      setTimeout(() => setPasswordMsg(null), 3000);
     },
   });
 
@@ -96,7 +112,43 @@ function UsersPage() {
                     {formatDate(u.createdAt)}
                   </td>
                   <td className="py-3 px-4 text-right">
-                    {deletingId === u.id ? (
+                    {changingPasswordId === u.id ? (
+                      <form
+                        className="inline-flex items-center gap-2"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (newPassword.length < 8) return;
+                          changePassword.mutate({ id: u.id, password: newPassword });
+                        }}
+                      >
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="New password (min 8)"
+                          className="border border-gray-300 rounded px-2 py-1 text-xs w-40"
+                          minLength={8}
+                          autoFocus
+                        />
+                        <button
+                          type="submit"
+                          disabled={changePassword.isPending || newPassword.length < 8}
+                          className="text-xs text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                        >
+                          {changePassword.isPending ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setChangingPasswordId(null);
+                            setNewPassword("");
+                          }}
+                          className="text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Cancel
+                        </button>
+                      </form>
+                    ) : deletingId === u.id ? (
                       <div className="inline-flex items-center gap-2">
                         <span className="text-xs text-gray-500">
                           Are you sure?
@@ -116,12 +168,27 @@ function UsersPage() {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => setDeletingId(u.id)}
-                        className="text-xs text-red-600 hover:text-red-700 font-medium"
-                      >
-                        Delete
-                      </button>
+                      <div className="inline-flex items-center gap-3">
+                        <button
+                          onClick={() => {
+                            setChangingPasswordId(u.id);
+                            setNewPassword("");
+                            setDeletingId(null);
+                          }}
+                          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          Change Password
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeletingId(u.id);
+                            setChangingPasswordId(null);
+                          }}
+                          className="text-xs text-red-600 hover:text-red-700 font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -129,6 +196,18 @@ function UsersPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {passwordMsg && (
+        <div className="mt-4 bg-green-50 text-green-700 p-3 rounded-lg text-sm">
+          {passwordMsg}
+        </div>
+      )}
+
+      {changePassword.isError && (
+        <p className="mt-4 text-sm text-red-600">
+          Failed to change password. Minimum 8 characters required.
+        </p>
       )}
 
       {deleteUser.isError && (
