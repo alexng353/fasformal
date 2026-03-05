@@ -16,9 +16,10 @@ export const settingsModule = new Elysia({ prefix: "/settings" })
   .post(
     "/years",
     async ({ body }) => {
-      const { refundDeadline, submissionDeadline, ...rest } = body;
+      const { refundDeadline, submissionDeadline, formSlug, ...rest } = body;
       const [year] = await db.insert(years).values({
         ...rest,
+        formSlug: formSlug ?? String(body.year),
         refundDeadline: refundDeadline ? new Date(refundDeadline) : refundDeadline === null ? null : undefined,
         submissionDeadline: submissionDeadline ? new Date(submissionDeadline) : submissionDeadline === null ? null : undefined,
       }).returning();

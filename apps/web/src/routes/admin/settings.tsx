@@ -94,7 +94,7 @@ function defaultFormState(): Year {
     paymentDeadlineHours: 48,
     refundDeadline: null,
     submissionDeadline: null,
-    formSlug: null,
+    formSlug: String(new Date().getFullYear()),
     tosText: "",
     waiverLink: "",
     waiverSubmissionEmail: "",
