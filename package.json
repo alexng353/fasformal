@@ -10,6 +10,8 @@
     "db:migrate": "bun run --filter '@fasformal/api' db:migrate",
     "db:seed": "bun run --filter '@fasformal/api' db:seed",
     "db:start": "docker compose up -d --wait && bun db:migrate && bun db:seed",
-    "db:reset": "docker compose down -v && bun db:start"
+    "db:reset": "docker compose down -v && bun db:start",
+    "build": "bun run --filter '@fasformal/web' build",
+    "start": "cd apps/api && bun run src/index.ts"
   }
 }
