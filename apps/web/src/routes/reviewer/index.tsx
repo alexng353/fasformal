@@ -44,7 +44,7 @@ function ReviewerDashboard() {
         </h1>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => setStatusFilter(e.target.value as AttendeeStatus | "")}
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
         >
           <option value="">All statuses</option>

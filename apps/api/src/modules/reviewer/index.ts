@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { db } from "../../db";
 import { attendees, reviewerDsus, dsus, years } from "../../db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { requireStaff } from "../auth/guards";
 
 const tAttendeeStatus = t.Union([

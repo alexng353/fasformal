@@ -208,7 +208,7 @@ function CreateInviteForm({ onCreated }: { onCreated: () => void }) {
           </label>
           <select
             value={role}
-            onChange={(e) => setRole(e.target.value)}
+            onChange={(e) => setRole(e.target.value as "admin" | "reviewer")}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
           >
             <option value="admin">Admin</option>

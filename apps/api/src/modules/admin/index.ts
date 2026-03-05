@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { db } from "../../db";
-import { attendees, users, inviteLinks, years } from "../../db/schema";
-import { eq, and, gt } from "drizzle-orm";
+import { attendees, users, inviteLinks } from "../../db/schema";
+import { eq, and } from "drizzle-orm";
 import { requireAdmin } from "../auth/guards";
 import { randomBytes } from "crypto";
 
