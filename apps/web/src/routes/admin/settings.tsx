@@ -76,6 +76,30 @@ const btnSecondary =
   "bg-white text-gray-700 border border-gray-300 py-2 px-4 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition text-sm font-medium";
 
 // ---------------------------------------------------------------------------
+// Draft persistence helpers
+// ---------------------------------------------------------------------------
+
+const DRAFT_KEY_PREFIX = "fasformal-settings-draft-";
+
+function saveDraft(key: string, form: Year) {
+  sessionStorage.setItem(DRAFT_KEY_PREFIX + key, JSON.stringify(form));
+}
+
+function loadDraft(key: string): Year | null {
+  const raw = sessionStorage.getItem(DRAFT_KEY_PREFIX + key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as Year;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft(key: string) {
+  sessionStorage.removeItem(DRAFT_KEY_PREFIX + key);
+}
+
+// ---------------------------------------------------------------------------
 // Default form state for "Add Year"
 // ---------------------------------------------------------------------------
 
@@ -138,13 +162,31 @@ function SettingsPage() {
     }
   }, [years, selectedYearId, isAdding]);
 
-  // Sync form when selecting a year
+  // Sync form when selecting a year — restore draft if one exists
   useEffect(() => {
     if (selectedYearId) {
-      const y = years.find((yr) => yr.id === selectedYearId);
-      if (y) setForm({ ...y });
+      const serverData = years.find((yr) => yr.id === selectedYearId);
+      const draft = loadDraft(selectedYearId);
+      if (draft && serverData && JSON.stringify(draft) !== JSON.stringify(serverData)) {
+        setForm(draft);
+      } else if (serverData) {
+        setForm({ ...serverData });
+        clearDraft(selectedYearId);
+      }
     }
   }, [selectedYearId, years]);
+
+  // Persist draft only when form differs from server data
+  useEffect(() => {
+    const key = isAdding ? "new" : selectedYearId;
+    if (!key) return;
+    const serverData = isAdding ? null : years.find((yr) => yr.id === selectedYearId);
+    if (!serverData || JSON.stringify(form) !== JSON.stringify(serverData)) {
+      saveDraft(key, form);
+    } else {
+      clearDraft(key);
+    }
+  }, [form, selectedYearId, isAdding, years]);
 
   // ---- Mutations ----
 
@@ -173,6 +215,7 @@ function SettingsPage() {
       return result as Year;
     },
     onSuccess: (newYear) => {
+      clearDraft("new");
       queryClient.invalidateQueries({ queryKey: ["settings", "years"] });
       setIsAdding(false);
       setSelectedYearId(newYear.id);
@@ -204,6 +247,7 @@ function SettingsPage() {
       return result;
     },
     onSuccess: () => {
+      if (selectedYearId) clearDraft(selectedYearId);
       queryClient.invalidateQueries({ queryKey: ["settings", "years"] });
       flash("Settings saved");
     },
@@ -236,7 +280,7 @@ function SettingsPage() {
   function handleAddYear() {
     setIsAdding(true);
     setSelectedYearId(null);
-    setForm(defaultFormState());
+    setForm(loadDraft("new") ?? defaultFormState());
     setActiveTab("general");
   }
 
