@@ -9,7 +9,7 @@ import {
   attendeeSessions,
   years,
 } from "../../db/schema";
-import { eq, and, gt, sql } from "drizzle-orm";
+import { eq, and, gt, isNull, sql } from "drizzle-orm";
 import { generateSessionToken } from "../../lib/session";
 import { generateOtp } from "../../lib/otp";
 import { generateConfirmationNumber } from "../../lib/confirmation";
@@ -237,11 +237,13 @@ export const authModule = new Elysia({ prefix: "/auth" })
         return status(401, "Invalid or expired code");
       }
 
-      // Correct code — mark as used
-      await db
+      // Correct code — atomically mark as used (prevents TOCTOU race)
+      const [marked] = await db
         .update(emailCodes)
         .set({ usedAt: new Date() })
-        .where(eq(emailCodes.id, codeRecord.id));
+        .where(and(eq(emailCodes.id, codeRecord.id), isNull(emailCodes.usedAt)))
+        .returning();
+      if (!marked) return status(401, "Code already used");
 
       // Find or create attendee
       let attendee = await db.query.attendees.findFirst({

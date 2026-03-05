@@ -113,12 +113,14 @@ export const settingsModule = new Elysia({ prefix: "/settings" })
   .post(
     "/years/:id/activate",
     async ({ params }) => {
-      await db.update(years).set({ isActive: false });
-      const [updated] = await db
-        .update(years)
-        .set({ isActive: true })
-        .where(eq(years.id, params.id))
-        .returning();
+      const [updated] = await db.transaction(async (tx) => {
+        await tx.update(years).set({ isActive: false });
+        return tx
+          .update(years)
+          .set({ isActive: true })
+          .where(eq(years.id, params.id))
+          .returning();
+      });
       return updated;
     },
     { params: t.Object({ id: t.String() }) }
@@ -217,6 +219,7 @@ export const settingsModule = new Elysia({ prefix: "/settings" })
       const [assignment] = await db
         .insert(reviewerDsus)
         .values({ userId: body.userId, dsuId: body.dsuId })
+        .onConflictDoNothing()
         .returning();
       return assignment;
     },

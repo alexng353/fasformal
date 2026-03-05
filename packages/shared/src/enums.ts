@@ -39,8 +39,7 @@ export const FORM_STEPS = {
   WAIVER: 7,
   REFUND_AWARENESS: 8,
   REFUND_DATE: 9,
-  PAYMENT_INFO: 10,
-  PAYMENT_AGREEMENT: 11,
+  PAYMENT_AGREEMENT: 10,
 } as const;
 
-export const TOTAL_FORM_STEPS = 11;
+export const TOTAL_FORM_STEPS = 10;

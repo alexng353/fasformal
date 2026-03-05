@@ -156,6 +156,12 @@ export const adminModule = new Elysia({ prefix: "/admin" })
         .set({ passwordHash, updatedAt: new Date() })
         .where(eq(users.id, params.id));
 
+      if (params.id !== user.id) {
+        console.log(
+          `[AUDIT] Admin ${user.id} (${user.email}) changed password for user ${params.id} (${target.email})`
+        );
+      }
+
       return { ok: true };
     },
     {

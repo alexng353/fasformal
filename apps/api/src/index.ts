@@ -54,7 +54,7 @@ if (hasWebDist) {
 
     if (
       reqPath &&
-      filePath.startsWith(webDistDir) &&
+      filePath.startsWith(webDistDir + "/") &&
       existsSync(filePath) &&
       !filePath.endsWith("/")
     ) {

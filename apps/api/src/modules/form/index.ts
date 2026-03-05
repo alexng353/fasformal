@@ -114,7 +114,14 @@ export const formModule = new Elysia({ prefix: "/form" })
 
       switch (stepNum) {
         case 3: // DSU selection
-          if (body.dsuType) update.dsuType = body.dsuType;
+          if (body.dsuType) {
+            update.dsuType = body.dsuType;
+            // Clear stale DSU association when type changes
+            if (body.dsuType !== attendee.dsuType) {
+              update.dsuId = null;
+              update.specifiedDsu = null;
+            }
+          }
           if (body.dsuId !== undefined) {
             if (body.dsuId) {
               // Validate dsuId belongs to this attendee's year
@@ -241,7 +248,7 @@ export const formModule = new Elysia({ prefix: "/form" })
         refundAwarenessConfirmed: t.Optional(t.Boolean()),
         // Step 9
         refundDateAnswer: t.Optional(t.String()),
-        // Step 11
+        // Step 10
         paymentAgreed: t.Optional(t.Boolean()),
       }),
     }

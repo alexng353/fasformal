@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -29,4 +29,5 @@ export const reviewerDsus = pgTable(
       .notNull()
       .defaultNow(),
   },
+  (t) => [unique("reviewer_dsus_user_dsu").on(t.userId, t.dsuId)]
 );
