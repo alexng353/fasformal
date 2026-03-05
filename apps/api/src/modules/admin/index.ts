@@ -77,16 +77,27 @@ export const adminModule = new Elysia({ prefix: "/admin" })
     return allUsers.map(({ passwordHash, ...u }) => u);
   })
 
-  // Change user password (admin can change any user's password)
+  // Change user password
+  // - Changing your own password requires currentPassword
+  // - Changing another user's password does not (admin privilege)
   .patch(
     "/users/:id/password",
-    async ({ params, body, error }) => {
+    async ({ params, body, user, error }) => {
       const target = await db.query.users.findFirst({
         where: eq(users.id, params.id),
       });
       if (!target) return error(404, "User not found");
 
-      const passwordHash = await Bun.password.hash(body.password);
+      // If changing own password, verify current password
+      if (params.id === user.id) {
+        if (!body.currentPassword) {
+          return error(400, "Current password is required when changing your own password");
+        }
+        const valid = await Bun.password.verify(body.currentPassword, target.passwordHash);
+        if (!valid) return error(403, "Current password is incorrect");
+      }
+
+      const passwordHash = await Bun.password.hash(body.newPassword);
       await db
         .update(users)
         .set({ passwordHash, updatedAt: new Date() })
@@ -97,7 +108,8 @@ export const adminModule = new Elysia({ prefix: "/admin" })
     {
       params: t.Object({ id: t.String() }),
       body: t.Object({
-        password: t.String({ minLength: 8 }),
+        currentPassword: t.Optional(t.String()),
+        newPassword: t.String({ minLength: 8 }),
       }),
     }
   )
