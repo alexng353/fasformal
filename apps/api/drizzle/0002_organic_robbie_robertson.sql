@@ -1,0 +1,1 @@
+ALTER TABLE "reviewer_dsus" ADD CONSTRAINT "reviewer_dsus_user_dsu" UNIQUE("user_id","dsu_id");

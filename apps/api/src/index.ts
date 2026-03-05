@@ -8,6 +8,7 @@ import { reviewerModule } from "./modules/reviewer";
 import { db } from "./db";
 import { years } from "./db/schema";
 import { eq } from "drizzle-orm";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import path from "path";
 import { existsSync } from "fs";
 
@@ -69,6 +70,8 @@ if (hasWebDist) {
     });
   });
 }
+
+await migrate(db, { migrationsFolder: path.resolve(import.meta.dir, "../drizzle") });
 
 app.listen(process.env.PORT || 8888);
 

@@ -15,6 +15,13 @@
       "when": 1772704788245,
       "tag": "0001_hesitant_maximus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772713364888,
+      "tag": "0002_organic_robbie_robertson",
+      "breakpoints": true
     }
   ]
 }
