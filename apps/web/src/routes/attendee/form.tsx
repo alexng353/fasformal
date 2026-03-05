@@ -942,6 +942,7 @@ function Step10({
   year: NonNullable<YearConfig>;
   onSuccess: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const mutation = useStepMutation(10);
 
   const price = calculatePrice(year, attendee);
@@ -998,9 +999,36 @@ function Step10({
             <p className="text-sm font-medium text-gray-600 mb-1">
               e-Transfer Description / Message
             </p>
-            <p className="text-sm text-gray-900 bg-white border border-gray-200 rounded p-2 font-mono">
-              {paymentDescription}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded p-2 font-mono">
+                {paymentDescription}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(paymentDescription);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition shrink-0",
+                  copied
+                    ? "border-green-300 bg-green-50 text-green-700"
+                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+                )}
+              >
+                {copied ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                )}
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
           </div>
 
           <div className="border-t border-gray-200 pt-3">
